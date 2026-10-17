@@ -171,7 +171,7 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .two button{height:50px;border-radius:14px;font-weight:600}
 .two .cancel{background:var(--surface)} .two .ok{background:var(--accent);color:var(--bg)}
 #cscrim{z-index:25}
-.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:15;display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border-top:1px solid var(--line);
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:15;display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border-top:1px solid var(--line);
   padding:6px max(16px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .tabbar button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;color:var(--muted);font-size:12px;font-weight:600}
 .tabbar button svg{width:24px;height:24px}
@@ -182,6 +182,32 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .cadd{padding:8px 14px;border-radius:10px;font-weight:600;font-size:14px;color:#fff}
 .cadd.e{background:var(--exp)} .cadd.i{background:var(--inc)}
 .csec .note{margin:2px 0 0;text-align:left}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi{background:var(--surface);border-radius:var(--r);padding:12px 14px;min-width:0}
+.kpi span{display:block;font-size:12px;color:var(--muted)}
+.kpi b{display:block;font-family:var(--display);font-weight:700;font-size:clamp(15px,4.4vw,19px);margin-top:2px;overflow-wrap:anywhere}
+.rcard{background:var(--surface);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.rcard h2{margin:0;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.rhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.legend{display:flex;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.chartbox svg{width:100%;height:auto;display:block}
+.chartbox text{fill:var(--muted);font-size:9px;font-family:var(--body)}
+.chartbox .grid{stroke:var(--line);stroke-width:.6}
+.tscroll{overflow-x:auto;margin:0 -4px}
+.rtable{width:100%;border-collapse:collapse;font-size:13px;min-width:320px}
+.rtable th{text-align:right;color:var(--muted);font-weight:600;font-size:12px;padding:6px 4px;border-bottom:1px solid var(--line)}
+.rtable th:first-child,.rtable td:first-child{text-align:left}
+.rtable td{text-align:right;padding:7px 4px;border-bottom:1px solid var(--line);white-space:nowrap}
+.rtable tr.m{cursor:pointer} .rtable tr.m:hover td{background:var(--surface-2)}
+.rtable tr.empty td{color:var(--muted)}
+.rtable tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--line)}
+.rtop{display:flex;flex-direction:column;gap:10px}
+.trow{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center}
+.trow .ic{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;background:var(--c)}
+.trow .t{min-width:0} .trow .t b{font-weight:600;font-size:14px}
+.trow .t .bar{margin-top:4px}
+.trow .v{text-align:right;font-weight:600;font-size:14px} .trow .v small{display:block;color:var(--muted);font-weight:400;font-size:12px}
 .tools{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px}
 </style>
 </head>
@@ -232,8 +258,33 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
   </section>
 </div>
 
+<div class="app" id="pgReport" hidden>
+  <header><div class="brand">Отчёты<small>Итоги по месяцам и категориям</small></div></header>
+  <div class="nav"><button id="rPrev" aria-label="Предыдущий год">‹</button><div class="label" id="rYear"></div><button id="rNext" aria-label="Следующий год">›</button></div>
+  <div class="kpis" id="rKpis"></div>
+  <section class="rcard">
+    <div class="rhead"><h2>По месяцам</h2><div class="legend"><span><i style="background:var(--inc)"></i>Доходы</span><span><i style="background:var(--exp)"></i>Расходы</span></div></div>
+    <div class="chartbox" id="rChart"></div>
+  </section>
+  <section class="rcard">
+    <h2>Таблица</h2>
+    <div class="tscroll"><table class="rtable num" id="rTable"></table></div>
+    <p class="note" style="text-align:left;margin:6px 0 0">Нажмите на месяц, чтобы открыть его записи.</p>
+  </section>
+  <section class="rcard">
+    <h2>Куда уходят деньги</h2>
+    <div id="rTop" class="rtop"></div>
+  </section>
+  <section class="rcard">
+    <h2>Выгрузка в Excel</h2>
+    <p class="note" style="text-align:left;margin:0 0 10px">Файл со всеми записями: дата, тип, категория, сумма, комментарий. Открывается в Excel и Google Таблицах.</p>
+    <div class="tools" style="justify-content:flex-start;margin:0"><button class="ghost" id="xYear">Записи за год</button><button class="ghost" id="xAll">Все записи</button></div>
+  </section>
+</div>
+
 <nav class="tabbar" aria-label="Разделы">
   <button id="tabHome" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z"/></svg><span>Главная</span></button>
+  <button id="tabReport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg><span>Отчёты</span></button>
   <button id="tabCats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg><span>Категории</span></button>
 </nav>
 
@@ -586,10 +637,9 @@ let cFrom=null, ceId=null, ceType='exp', ceIcon='📦', ceColor=COLORS[0], cPend
 function arrOf(t){ return t==='inc'?INC:EXP; }
 function closeCats(){ $('cscrim').hidden=true; }
 function showTab(t){
-  $('pgHome').hidden=t!=='home'; $('pgCats').hidden=t!=='cats';
-  $('tabHome').toggleAttribute('aria-current',t==='home'); $('tabCats').toggleAttribute('aria-current',t==='cats');
-  if(t==='home'){$('tabHome').setAttribute('aria-current','page')} else {$('tabCats').setAttribute('aria-current','page')}
-  cPendingDel=null; if(t==='cats') drawCats(); else render(); window.scrollTo(0,0);
+  [['home','pgHome','tabHome'],['cats','pgCats','tabCats'],['report','pgReport','tabReport']].forEach(([k,pg,tb])=>{
+    $(pg).hidden=t!==k; if(t===k) $(tb).setAttribute('aria-current','page'); else $(tb).removeAttribute('aria-current'); });
+  cPendingDel=null; if(t==='cats') drawCats(); else if(t==='report') drawReport(); else render(); window.scrollTo(0,0);
 }
 function drawCats(){ drawCatList('exp',$('clistExp')); drawCatList('inc',$('clistInc')); }
 function drawCatList(type,box){
@@ -643,13 +693,77 @@ function saveCatEditor(){
   leaveEditor();
 }
 
+/* ---------- reports ---------- */
+const MONs=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+let rYear=new Date().getFullYear();
+const short=n=>{const a=Math.abs(n);return a>=1e6?(+(n/1e6).toFixed(1)).toLocaleString('ru-RU')+' млн':a>=1e3?Math.round(n/1e3).toLocaleString('ru-RU')+' тыс':String(Math.round(n))};
+function drawReport(){
+  $('rYear').textContent=String(rYear);
+  const now=new Date(); $('rNext').disabled=rYear>=now.getFullYear();
+  const yt=tx.filter(t=>t.date.startsWith(rYear+'-'));
+  const m=Array.from({length:12},()=>({inc:0,exp:0}));
+  yt.forEach(t=>{m[+t.date.slice(5,7)-1][t.type]+=t.amount});
+  const inc=m.reduce((a,x)=>a+x.inc,0), exp=m.reduce((a,x)=>a+x.exp,0);
+  const active=m.filter(x=>x.inc||x.exp).length||1;
+  $('rKpis').innerHTML=`<div class="kpi"><span>Доходы</span><b class="amt-inc">${esc(money(inc))}</b></div><div class="kpi"><span>Расходы</span><b class="amt-exp">${esc(money(exp))}</b></div>
+    <div class="kpi"><span>Остаток</span><b class="${inc-exp<0?'amt-exp':'amt-inc'}">${esc(money(inc-exp,true))}</b></div><div class="kpi"><span>Расход в среднем за месяц</span><b>${esc(money(Math.round(exp/active)))}</b></div>`;
+
+  // chart
+  const W=360,H=190,L=44,B=20,T=8,pw=W-L-4,ph=H-B-T;
+  const max=Math.max(...m.map(x=>Math.max(x.inc,x.exp)),0);
+  let top=1; if(max>0){const p=Math.pow(10,Math.floor(Math.log10(max)));top=[1,2,2.5,5,10].map(k=>k*p).find(v=>v>=max);}
+  const y=v=>T+ph-v/top*ph; let g='';
+  for(let i=0;i<=4;i++){const v=top*i/4;g+=`<line class="grid" x1="${L}" x2="${W-4}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-4}" y="${y(v)+3}" text-anchor="end">${short(v)}</text>`;}
+  const cw=pw/12,bw=Math.min(9,cw*.34);
+  m.forEach((x,i)=>{const cx=L+cw*i+cw/2;
+    if(x.inc) g+=`<rect x="${cx-bw-1}" y="${y(x.inc)}" width="${bw}" height="${Math.max(y(0)-y(x.inc),1)}" rx="2" fill="var(--inc)"><title>${MON[i]}: доходы ${money(x.inc)}</title></rect>`;
+    if(x.exp) g+=`<rect x="${cx+1}" y="${y(x.exp)}" width="${bw}" height="${Math.max(y(0)-y(x.exp),1)}" rx="2" fill="var(--exp)"><title>${MON[i]}: расходы ${money(x.exp)}</title></rect>`;
+    const cur=rYear===now.getFullYear()&&i===now.getMonth();
+    g+=`<text x="${cx}" y="${H-6}" text-anchor="middle" ${cur?'style="fill:var(--fg);font-weight:700"':''}>${MONs[i]}</text>`;});
+  $('rChart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Доходы и расходы по месяцам за ${rYear} год">${g}</svg>`;
+
+  // table
+  let rows='';
+  m.forEach((x,i)=>{ if(rYear===now.getFullYear()&&i>now.getMonth()&&!x.inc&&!x.exp) return;
+    const b=x.inc-x.exp, e=!x.inc&&!x.exp;
+    rows+=`<tr class="m${e?' empty':''}" data-m="${i}"><td>${MON[i]}</td><td class="amt-inc">${x.inc?nf.format(x.inc):'—'}</td><td class="amt-exp">${x.exp?nf.format(x.exp):'—'}</td><td class="${b<0?'amt-exp':b>0?'amt-inc':''}">${e?'—':(b>0?'+':b<0?'−':'')+nf.format(Math.abs(b))}</td></tr>`;});
+  $('rTable').innerHTML=`<thead><tr><th>Месяц</th><th>Доходы</th><th>Расходы</th><th>Остаток</th></tr></thead><tbody>${rows}</tbody>
+    <tfoot><tr><td>Итого, ${esc(cur)}</td><td class="amt-inc">${nf.format(inc)}</td><td class="amt-exp">${nf.format(exp)}</td><td class="${inc-exp<0?'amt-exp':'amt-inc'}">${(inc-exp<0?'−':'')+nf.format(Math.abs(inc-exp))}</td></tr></tfoot>`;
+  $('rTable').querySelectorAll('tr.m').forEach(tr=>tr.onclick=()=>{
+    const mi=+tr.dataset.m, n=new Date(); period='month'; store.set('period','month');
+    offset=(rYear-n.getFullYear())*12+(mi-n.getMonth()); openGroup=null; showTab('home');});
+
+  // top categories
+  const sums={}; yt.filter(t=>t.type==='exp').forEach(t=>{sums[t.cat]=(sums[t.cat]||0)+t.amount});
+  const keys=Object.keys(sums).sort((a,b)=>sums[b]-sums[a]);
+  const tb=$('rTop'); tb.innerHTML='';
+  if(!keys.length){ tb.innerHTML='<p class="note" style="text-align:left;margin:0">За этот год расходов пока нет.</p>'; }
+  keys.forEach(k=>{const c=catOf(k,'exp'),v=sums[k],pct=exp?Math.round(v/exp*100):0;
+    const r=document.createElement('div'); r.className='trow'; r.style.setProperty('--c',c.color);
+    r.innerHTML=`<span class="ic">${esc(c.icon)}</span><span class="t"><b>${esc(c.name)}</b><span class="bar"><i style="width:${pct}%"></i></span></span><span class="v num">${esc(money(v))}<small>${pct}%</small></span>`;
+    tb.appendChild(r);});
+}
+function exportCSV(all){
+  const rows=(all?tx:tx.filter(t=>t.date.startsWith(rYear+'-'))).slice().sort((a,b)=>a.date.localeCompare(b.date)||a.created-b.created);
+  if(!rows.length){ toast('Нет записей для выгрузки'); return; }
+  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const lines=[['Дата','Тип','Категория','Сумма','Валюта','Комментарий'].map(q).join(';')];
+  rows.forEach(t=>{const d=t.date.split('-');lines.push([d[2]+'.'+d[1]+'.'+d[0],t.type==='exp'?'Расход':'Доход',catOf(t.cat,t.type).name,String(t.type==='exp'?-t.amount:t.amount).replace('.',','),cur,t.note||''].map((v,i)=>i===3?v:q(v)).join(';'))});
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='koshelek-'+(all?'vse':rYear)+'.csv';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  toast('Файл сохранён в «Загрузки»: записей '+rows.length);
+}
+
 /* ---------- wiring ---------- */
 $('periods').onclick=e=>{const p=e.target.closest('button')?.dataset.p;if(p){period=p;offset=0;openGroup=null;store.set('period',p);render()}};
 $('prev').onclick=()=>{offset--;render()}; $('next').onclick=()=>{offset++;render()};
 $('addExp').onclick=()=>openSheet('exp'); $('addInc').onclick=()=>openSheet('inc');
 $('tExp').onclick=()=>{sType='exp';sCat=EXP[0][0];drawSheet()}; $('tInc').onclick=()=>{sType='inc';sCat=INC[0][0];drawSheet()};
 $('close').onclick=closeSheet;
-$('tabHome').onclick=()=>showTab('home'); $('tabCats').onclick=()=>showTab('cats');
+$('tabHome').onclick=()=>showTab('home'); $('tabReport').onclick=()=>showTab('report');
+$('rPrev').onclick=()=>{rYear--;drawReport()}; $('rNext').onclick=()=>{rYear++;drawReport()};
+$('xYear').onclick=()=>exportCSV(false); $('xAll').onclick=()=>exportCSV(true); $('tabCats').onclick=()=>showTab('cats');
 $('cscrim').onclick=e=>{if(e.target===$('cscrim'))leaveEditor()};
 $('cAddExp').onclick=()=>openCatEditor('exp',null,'list'); $('cAddInc').onclick=()=>openCatEditor('inc',null,'list'); $('ceCancel').onclick=leaveEditor; $('ceClose').onclick=leaveEditor; $('ceSave').onclick=saveCatEditor;
 $('ceName').onkeydown=e=>{if(e.key==='Enter')saveCatEditor()};
