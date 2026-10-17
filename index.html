@@ -148,6 +148,29 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}}
   .donut circle.seg-arc{transition:stroke-dasharray .4s,stroke-dashoffset .4s}}
 @media (max-width:360px){.cat .ic{width:38px;height:38px;font-size:18px}}
+.clist{display:flex;flex-direction:column;gap:6px}
+.crow{display:grid;grid-template-columns:38px 1fr auto auto auto;gap:6px;align-items:center;background:var(--surface);border-radius:12px;padding:7px 8px 7px 10px}
+.crow .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:19px;background:var(--c)}
+.crow b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crow b small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.ibtn{width:36px;height:36px;border-radius:10px;color:var(--muted);font-size:16px}
+.ibtn:hover{background:var(--surface-2)} .ibtn:disabled{opacity:.25;cursor:default;background:none}
+.ibtn.confirm{width:auto;padding:0 10px;background:var(--exp);color:#fff;font-size:13px}
+.addcat{height:48px;border-radius:12px;border:2px dashed var(--line);color:var(--muted);font-weight:600}
+.lbl{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:-4px}
+.ced-prev{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:var(--r);padding:12px}
+.ced-prev .ic{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:26px;background:var(--c);flex:none}
+.ced-prev input{flex:1;min-width:0;font:inherit;font-size:17px;color:var(--fg);background:transparent;border:0;border-bottom:1px solid var(--line);padding:6px 2px}
+.emojis{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:4px}
+.emojis button{height:44px;border-radius:10px;font-size:22px}
+.emojis button[aria-pressed="true"]{background:var(--surface);box-shadow:inset 0 0 0 2px var(--accent)}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.swatches button{width:34px;height:34px;border-radius:50%;background:var(--c)}
+.swatches button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--bg),0 0 0 5px var(--fg)}
+.two{display:grid;grid-template-columns:1fr 2fr;gap:8px}
+.two button{height:50px;border-radius:14px;font-weight:600}
+.two .cancel{background:var(--surface)} .two .ok{background:var(--accent);color:var(--bg)}
+#cscrim{z-index:25}
 .tools{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px}
 </style>
 </head>
@@ -178,6 +201,7 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 
   <div class="tools">
     <button class="ghost" id="install" hidden>Установить на телефон</button>
+    <button class="ghost" id="catsBtn">Мои категории</button>
     <button class="ghost" id="exportBtn">Сохранить резервную копию</button>
     <label class="ghost" for="importFile" style="cursor:pointer">Восстановить из копии</label>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
@@ -219,16 +243,47 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
     <button class="vsave" id="vsave" disabled>Сохранить</button>
   </div>
 </div>
+<div class="scrim" id="cscrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Категории">
+    <div id="cList">
+      <div class="top" style="margin-bottom:12px"><b style="font-size:17px">Мои категории</b><button class="x" id="cclose" aria-label="Закрыть">×</button></div>
+      <div class="seg" style="align-self:flex-start;margin-bottom:12px"><button class="e" id="cExp">Расходы</button><button class="i" id="cInc">Доходы</button></div>
+      <div class="clist" id="clist"></div>
+      <p class="note" id="cnote" style="margin:10px 0">Порядок стрелками ↑ — первые 12 расходов видны вокруг диаграммы.</p>
+      <button class="addcat" id="cAdd" style="width:100%">＋ Новая категория</button>
+    </div>
+    <div id="cEdit" hidden style="display:flex;flex-direction:column;gap:12px">
+      <div class="top"><b style="font-size:17px" id="ceTitle">Новая категория</b><button class="x" id="ceClose" aria-label="Закрыть">×</button></div>
+      <div class="ced-prev" id="cePrev"><span class="ic" id="ceIcon">📦</span><input id="ceName" maxlength="20" placeholder="Название, например «Материалы»" aria-label="Название категории"></div>
+      <div class="err" id="ceErr" role="alert"></div>
+      <div class="lbl">Значок</div>
+      <div class="emojis" id="ceEmojis"></div>
+      <div class="lbl">Цвет</div>
+      <div class="swatches" id="ceColors"></div>
+      <div class="two"><button class="cancel" id="ceCancel">Отмена</button><button class="ok" id="ceSave">Сохранить</button></div>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const EXP=[
+const DEF_EXP=[
  ['food','Продукты','🛒','#f2b84b'],['cafe','Кафе','🍽️','#ef8a5a'],['transport','Транспорт','🚌','#5aa9e6'],['car','Машина','🚗','#7b8fd4'],
  ['home','Дом','🏠','#9c7ad6'],['bills','Связь','📱','#4cc3b5'],['health','Здоровье','💊','#e67a9a'],['clothes','Одежда','👕','#c792e0'],
  ['fun','Отдых','🎉','#f3a1c2'],['gifts','Подарки','🎁','#e5636b'],['kids','Дети','🧸','#8fd07a'],['other','Другое','📦','#a7b0a9']
 ];
-const INC=[['salary','Зарплата','💼','#5cbf86'],['business','Бизнес','🏗️','#3fa38a'],['gift_in','Подарок','🎁','#a6d96a'],['other_in','Другое','💰','#7ec8a0']];
-const ALL=Object.fromEntries([...EXP,...INC].map(c=>[c[0],{id:c[0],name:c[1],icon:c[2],color:c[3]}]));
+const DEF_INC=[['salary','Зарплата','💼','#5cbf86'],['business','Бизнес','🏗️','#3fa38a'],['gift_in','Подарок','🎁','#a6d96a'],['other_in','Другое','💰','#7ec8a0']];
+const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let EXP, INC, ALL={};
+function loadCats(){
+  try{EXP=JSON.parse(localStorage.getItem('catsExp'))}catch(e){} if(!Array.isArray(EXP)||!EXP.length) EXP=DEF_EXP.map(c=>c.slice());
+  try{INC=JSON.parse(localStorage.getItem('catsInc'))}catch(e){} if(!Array.isArray(INC)||!INC.length) INC=DEF_INC.map(c=>c.slice());
+  rebuildAll();
+}
+function rebuildAll(){ ALL=Object.fromEntries([...EXP,...INC].map(c=>[c[0],{id:c[0],name:c[1],icon:c[2],color:c[3]}])); }
+function saveCats(){ try{localStorage.setItem('catsExp',JSON.stringify(EXP));localStorage.setItem('catsInc',JSON.stringify(INC))}catch(e){} rebuildAll(); }
+const catOf=(k,type)=>ALL[k]||(type==='inc'?ALL.other_in:ALL.other)||{id:k,name:'Другое',icon:'📦',color:'#a7b0a9'};
+loadCats();
 const MON=['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
 const MONg=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 
@@ -267,23 +322,24 @@ function render(){
   const list=tx.filter(t=>t.date>=r.a&&t.date<=r.b);
   const expT=list.filter(t=>t.type==='exp').reduce((s,t)=>s+t.amount,0);
   const incT=list.filter(t=>t.type==='inc').reduce((s,t)=>s+t.amount,0);
-  const byCat={}; list.forEach(t=>{byCat[t.cat]=(byCat[t.cat]||0)+t.amount});
+  const byCat={}, byExp={}; list.forEach(t=>{byCat[t.cat]=(byCat[t.cat]||0)+t.amount; if(t.type==='exp') byExp[t.cat]=(byExp[t.cat]||0)+t.amount});
 
   // board: 12 expense tiles around a donut (4 top, 2+2 sides, 4 bottom)
   const board=$('board'); board.innerHTML='';
   const pos=[[1,1],[2,1],[3,1],[4,1],[1,2],[4,2],[1,3],[4,3],[1,4],[2,4],[3,4],[4,4]];
-  EXP.forEach((c,i)=>{
+  const tiles=EXP.length>12?EXP.slice(0,11).concat([['__more','Ещё '+(EXP.length-11),'⋯','#a7b0a9']]):EXP;
+  tiles.forEach((c,i)=>{
     const b=document.createElement('button'); b.className='cat'; b.style.setProperty('--c',c[3]);
     b.style.gridColumn=pos[i][0]; b.style.gridRow=pos[i][1];
-    const s=byCat[c[0]]||0;
-    b.innerHTML=`<span class="ic${s?'':' dim'}">${c[2]}</span><span class="nm">${c[1]}</span><span class="sm num">${s?nf.format(s):''}</span>`;
-    b.setAttribute('aria-label',`Добавить расход: ${c[1]}`);
-    b.onclick=()=>openSheet('exp',c[0]);
+    const s=c[0]==='__more'?EXP.slice(11).reduce((a,x)=>a+(byExp[x[0]]||0),0):(byExp[c[0]]||0);
+    b.innerHTML=`<span class="ic${s?'':' dim'}">${esc(c[2])}</span><span class="nm">${esc(c[1])}</span><span class="sm num">${s?nf.format(s):''}</span>`;
+    b.setAttribute('aria-label',c[0]==='__more'?'Другие категории':'Добавить расход: '+c[1]);
+    b.onclick=()=>openSheet('exp',c[0]==='__more'?null:c[0]);
     board.appendChild(b);
   });
   const d=document.createElement('div'); d.className='donut';
   const R=42, C=2*Math.PI*R; let acc=0, arcs='';
-  const parts=EXP.map(c=>[c,byCat[c[0]]||0]).filter(p=>p[1]>0);
+  const parts=Object.keys(byExp).map(k=>{const c=catOf(k,'exp');return [[k,c.name,c.icon,c.color],byExp[k]]}).sort((a,b)=>b[1]-a[1]);
   if(expT>0) parts.forEach(([c,v])=>{const len=v/expT*C; const gap=parts.length>1?Math.min(1.2,len*.3):0;
     arcs+=`<circle class="seg-arc" cx="50" cy="50" r="${R}" fill="none" stroke="${c[3]}" stroke-width="11" stroke-dasharray="${Math.max(len-gap,0.01)} ${C}" stroke-dashoffset="${-acc}"/>`; acc+=len;});
   d.innerHTML=`<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="${R}" fill="none" stroke="var(--surface-2)" stroke-width="11"/>${arcs}</svg>
@@ -300,14 +356,15 @@ function render(){
     const dm=$('demo'); if(dm) dm.onclick=addDemo;
   } else {
     [['exp','Расходы',expT],['inc','Доходы',incT]].forEach(([type,title,total])=>{
-      const cats=Object.keys(byCat).filter(k=>list.some(t=>t.cat===k&&t.type===type)).sort((x,y)=>byCat[y]-byCat[x]);
+      const sums={}; list.filter(t=>t.type===type).forEach(t=>{sums[t.cat]=(sums[t.cat]||0)+t.amount});
+      const cats=Object.keys(sums).sort((x,y)=>sums[y]-sums[x]);
       if(!cats.length) return;
       const h=document.createElement('h2'); h.textContent=title+' · '+money(total); L.appendChild(h);
       cats.forEach(k=>{
-        const c=ALL[k]||ALL.other, v=byCat[k], pct=total?Math.round(v/total*100):0;
+        const c=catOf(k,type), v=list.filter(t=>t.cat===k&&t.type===type).reduce((a,t)=>a+t.amount,0), pct=total?Math.round(v/total*100):0;
         const g=document.createElement('div'); g.className='group'; g.style.setProperty('--c',c.color);
         const key=type+':'+k, open=openGroup===key;
-        g.innerHTML=`<button class="ghead" aria-expanded="${open}"><span class="ic">${c.icon}</span><span class="meta"><b>${c.name}</b><span class="bar"><i style="width:${pct}%"></i></span></span><span class="amt num ${type==='exp'?'amt-exp':'amt-inc'}">${money(v)}<small>${pct}%</small></span></button>`;
+        g.innerHTML=`<button class="ghead" aria-expanded="${open}"><span class="ic">${esc(c.icon)}</span><span class="meta"><b>${esc(c.name)}</b><span class="bar"><i style="width:${pct}%"></i></span></span><span class="amt num ${type==='exp'?'amt-exp':'amt-inc'}">${money(v)}<small>${pct}%</small></span></button>`;
         g.querySelector('.ghead').onclick=()=>{openGroup=open?null:key;pendingDel=null;render()};
         if(open){
           const it=document.createElement('div'); it.className='items';
@@ -341,7 +398,7 @@ function addDemo(){
 
 /* ---------- backup ---------- */
 function exportData(){
-  const blob=new Blob([JSON.stringify({app:'koshelek',version:1,exported:new Date().toISOString(),currency:cur,tx},null,1)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({app:'koshelek',version:2,exported:new Date().toISOString(),currency:cur,catsExp:EXP,catsInc:INC,tx},null,1)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='koshelek-'+today()+'.json';
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   toast('Резервная копия сохранена в «Загрузки»');
@@ -351,6 +408,9 @@ function importData(file){
   r.onload=()=>{try{
     const d=JSON.parse(r.result); if(!d||!Array.isArray(d.tx)) throw 0;
     const ok=d.tx.filter(t=>t&&t.id&&(t.type==='exp'||t.type==='inc')&&typeof t.amount==='number'&&/^\d{4}-\d\d-\d\d$/.test(t.date));
+    const okCat=c=>Array.isArray(c)&&c.length===4&&c.every(x=>typeof x==='string');
+    [['catsExp',EXP],['catsInc',INC]].forEach(([k,arr])=>{ if(Array.isArray(d[k])) d[k].filter(okCat).forEach(c=>{ if(!arr.some(x=>x[0]===c[0])) arr.push(c.slice()) }) });
+    saveCats();
     const ids=new Set(tx.map(t=>t.id)); const add=ok.filter(t=>!ids.has(t.id));
     tx=tx.concat(add); persistLocal(); render(); toast('Восстановлено записей: '+add.length);
   }catch(e){toast('Этот файл не похож на резервную копию Кошелька')}};
@@ -360,7 +420,7 @@ function importData(file){
 /* ---------- add sheet ---------- */
 let sType='exp', sCat='food', sAmt='';
 function openSheet(type,cat){
-  sType=type; sCat=cat||(type==='exp'?'food':'salary'); sAmt='';
+  sType=type; sCat=cat||(type==='exp'?EXP:INC)[0][0]; sAmt='';
   $('fDate').value=today(); $('fNote').value=''; $('err').textContent='';
   $('scrim').hidden=false; drawSheet();
 }
@@ -372,8 +432,11 @@ function drawSheet(){
   $('save').className='save '+(sType==='exp'?'e':'i');
   const pick=$('catPick'); pick.innerHTML='';
   (sType==='exp'?EXP:INC).forEach(c=>{const b=document.createElement('button');b.style.setProperty('--c',c[3]);
-    b.setAttribute('aria-pressed',c[0]===sCat);b.innerHTML=`<span class="ic">${c[2]}</span>${c[1]}`;
+    b.setAttribute('aria-pressed',c[0]===sCat);b.innerHTML=`<span class="ic">${esc(c[2])}</span>`;b.append(c[1]);
     b.onclick=()=>{sCat=c[0];drawSheet()};pick.appendChild(b)});
+  const nb=document.createElement('button'); nb.style.setProperty('--c','var(--surface-2)');
+  nb.innerHTML='<span class="ic">＋</span>Своя'; nb.setAttribute('aria-label','Новая категория');
+  nb.onclick=()=>openCatEditor(sType,null,'sheet'); pick.appendChild(nb);
 }
 function key(k){
   $('err').textContent='';
@@ -433,9 +496,11 @@ function parseDate(t){
   return null;
 }
 function guessCat(t,type){
+  const own=(type==='inc'?INC:EXP).filter(c=>!/^(other|other_in)$/.test(c[0]));
+  for(const c of own){ const n=c[1].toLowerCase().replace(/ё/g,'е').trim(); const stem=n.length>5?n.slice(0,n.length-2):n; if(stem&&t.includes(stem)) return c[0]; }
   const order=type==='inc'?['gift_in','salary','business']:['gifts','car','transport','cafe','food','home','bills','health','clothes','fun','kids'];
-  for(const k of order) if(has(t,KW[k])) return k;
-  return type==='inc'?'other_in':'other';
+  for(const k of order) if(ALL[k]&&has(t,KW[k])) return k;
+  return ALL[type==='inc'?'other_in':'other']?(type==='inc'?'other_in':'other'):(type==='inc'?INC:EXP)[0][0];
 }
 function parseVoice(text){
   let t=text.toLowerCase().replace(/ё/g,'е').replace(/(\d)\s(?=\d{3}(\D|$))/g,'$1').replace(/₸|тенге|тг\b|рубл\S*|сом\S*|долл\S*/g,' ');
@@ -501,12 +566,76 @@ function saveVoice(){
   const n=vItems.length; closeVoice(); toast(n===1?'Запись сохранена':'Сохранено записей: '+n);
 }
 
+/* ---------- categories manager ---------- */
+const EMOJIS=['🛒','🍽️','☕','🚌','🚗','⛽','🏠','💡','📱','💊','👕','🎉','🎁','🧸','🎓','✈️','🐾','💇','🏋️','📚','🚬','🍺','🧾','💳','🏦','🧱','🏗️','🚜','🛠️','🔩','🪵','👷','📦','🚛','⚙️','🧰','💼','💰','💵','📈','🤝','🕌','❤️','⭐'];
+const COLORS=['#f2b84b','#ef8a5a','#e5636b','#e67a9a','#c792e0','#9c7ad6','#7b8fd4','#5aa9e6','#4cc3b5','#5cbf86','#8fd07a','#a7b0a9'];
+let cType='exp', cFrom=null, ceId=null, ceType='exp', ceIcon='📦', ceColor=COLORS[0], cPendingDel=null;
+function openCats(){ cType='exp'; cPendingDel=null; $('cEdit').hidden=true; $('cList').hidden=false; $('cscrim').hidden=false; drawCats(); }
+function closeCats(){ $('cscrim').hidden=true; }
+function arrOf(t){ return t==='inc'?INC:EXP; }
+function drawCats(){
+  $('cExp').setAttribute('aria-pressed',cType==='exp'); $('cInc').setAttribute('aria-pressed',cType==='inc');
+  $('cnote').hidden=cType!=='exp';
+  const arr=arrOf(cType), box=$('clist'); box.innerHTML='';
+  arr.forEach((c,i)=>{
+    const used=tx.filter(t=>t.cat===c[0]).length;
+    const row=document.createElement('div'); row.className='crow'; row.style.setProperty('--c',c[3]);
+    const ic=document.createElement('span'); ic.className='ic'; ic.textContent=c[2];
+    const nm=document.createElement('b'); nm.textContent=c[1]; const sm=document.createElement('small'); sm.textContent=used?('записей: '+used):'нет записей'; nm.appendChild(sm);
+    const up=document.createElement('button'); up.className='ibtn'; up.textContent='↑'; up.disabled=i===0; up.setAttribute('aria-label','Выше');
+    up.onclick=()=>{arr.splice(i-1,0,arr.splice(i,1)[0]); saveCats(); drawCats(); render();};
+    const ed=document.createElement('button'); ed.className='ibtn'; ed.textContent='✎'; ed.setAttribute('aria-label','Изменить');
+    ed.onclick=()=>openCatEditor(cType,c[0],'list');
+    const del=document.createElement('button'); const fixed=c[0]==='other'||c[0]==='other_in'; const conf=cPendingDel===c[0];
+    del.className='ibtn'+(conf?' confirm':''); del.textContent=conf?(used?'Удалить? записи → «Другое»':'Удалить?'):'✕';
+    del.disabled=fixed; del.setAttribute('aria-label',fixed?'«Другое» удалить нельзя':'Удалить');
+    del.onclick=()=>{ if(!conf){cPendingDel=c[0];drawCats();return}
+      const fallback=cType==='inc'?'other_in':'other';
+      tx.forEach(t=>{ if(t.cat===c[0]) t.cat=fallback }); persistLocal();
+      arr.splice(i,1); saveCats(); cPendingDel=null; drawCats(); render(); toast('Категория удалена'); };
+    row.append(ic,nm,up,ed,del); box.appendChild(row);
+  });
+}
+function openCatEditor(type,id,from){
+  cFrom=from; ceType=type; ceId=id;
+  const c=id?arrOf(type).find(x=>x[0]===id):null;
+  ceIcon=c?c[2]:'📦'; ceColor=c?c[3]:COLORS[(arrOf(type).length)%COLORS.length];
+  $('ceName').value=c?c[1]:''; $('ceErr').textContent='';
+  $('ceTitle').textContent=c?'Изменить категорию':(type==='inc'?'Новая категория дохода':'Новая категория расхода');
+  $('cList').hidden=true; $('cEdit').hidden=false; $('cscrim').hidden=false; drawEditor();
+  setTimeout(()=>$('ceName').focus(),50);
+}
+function drawEditor(){
+  $('cePrev').style.setProperty('--c',ceColor); $('ceIcon').textContent=ceIcon;
+  const eb=$('ceEmojis'); eb.innerHTML='';
+  EMOJIS.forEach(e=>{const b=document.createElement('button');b.textContent=e;b.setAttribute('aria-pressed',e===ceIcon);b.onclick=()=>{ceIcon=e;drawEditor()};eb.appendChild(b)});
+  const cb=$('ceColors'); cb.innerHTML='';
+  COLORS.forEach(col=>{const b=document.createElement('button');b.style.setProperty('--c',col);b.setAttribute('aria-pressed',col===ceColor);b.setAttribute('aria-label','Цвет');b.onclick=()=>{ceColor=col;drawEditor()};cb.appendChild(b)});
+}
+function leaveEditor(){ if(cFrom==='sheet'){ closeCats(); } else { $('cEdit').hidden=true; $('cList').hidden=false; drawCats(); } }
+function saveCatEditor(){
+  const name=$('ceName').value.trim().replace(/\s+/g,' ');
+  if(!name){ $('ceErr').textContent='Введите название категории'; return; }
+  const arr=arrOf(ceType);
+  if(arr.some(c=>c[1].toLowerCase()===name.toLowerCase()&&c[0]!==ceId)){ $('ceErr').textContent='Такая категория уже есть'; return; }
+  let id=ceId;
+  if(id){ const c=arr.find(x=>x[0]===id); c[1]=name; c[2]=ceIcon; c[3]=ceColor; }
+  else { id='c_'+Date.now().toString(36); const at=arr.findIndex(x=>x[0]==='other'||x[0]==='other_in'); const item=[id,name,ceIcon,ceColor]; if(at<0) arr.push(item); else arr.splice(at,0,item); }
+  saveCats(); render(); toast(ceId?'Категория изменена':'Категория «'+name+'» добавлена');
+  if(cFrom==='sheet'){ sCat=id; drawSheet(); }
+  leaveEditor();
+}
+
 /* ---------- wiring ---------- */
 $('periods').onclick=e=>{const p=e.target.closest('button')?.dataset.p;if(p){period=p;offset=0;openGroup=null;store.set('period',p);render()}};
 $('prev').onclick=()=>{offset--;render()}; $('next').onclick=()=>{offset++;render()};
 $('addExp').onclick=()=>openSheet('exp'); $('addInc').onclick=()=>openSheet('inc');
-$('tExp').onclick=()=>{sType='exp';sCat='food';drawSheet()}; $('tInc').onclick=()=>{sType='inc';sCat='salary';drawSheet()};
+$('tExp').onclick=()=>{sType='exp';sCat=EXP[0][0];drawSheet()}; $('tInc').onclick=()=>{sType='inc';sCat=INC[0][0];drawSheet()};
 $('close').onclick=closeSheet;
+$('catsBtn').onclick=openCats; $('cclose').onclick=closeCats; $('cscrim').onclick=e=>{if(e.target===$('cscrim'))closeCats()};
+$('cExp').onclick=()=>{cType='exp';cPendingDel=null;drawCats()}; $('cInc').onclick=()=>{cType='inc';cPendingDel=null;drawCats()};
+$('cAdd').onclick=()=>openCatEditor(cType,null,'list'); $('ceCancel').onclick=leaveEditor; $('ceClose').onclick=leaveEditor; $('ceSave').onclick=saveCatEditor;
+$('ceName').onkeydown=e=>{if(e.key==='Enter')saveCatEditor()};
 $('addVoice').onclick=openVoice; $('vclose').onclick=closeVoice; $('vscrim').onclick=e=>{if(e.target===$('vscrim'))closeVoice()};
 $('vmic').onclick=startRec; $('vsave').onclick=saveVoice;
 let vt; $('vtext').oninput=()=>{clearTimeout(vt);vt=setTimeout(reparse,250)};
@@ -514,7 +643,7 @@ $('vchips').onclick=e=>{const b=e.target.closest('button');if(!b)return;$('vtext
 $('keys').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='save')return submit();key(b.dataset.k||b.textContent)};
 $('cur').value=cur; $('cur').onchange=e=>{cur=e.target.value;store.set('cur',cur);render()};
 document.addEventListener('keydown',e=>{
-  if($('scrim').hidden) return;
+  if($('scrim').hidden||!$('cscrim').hidden) return;
   if(e.target.tagName==='INPUT') { if(e.key==='Enter') submit(); return; }
   if(/^\d$/.test(e.key)) key(e.key); else if(e.key===','||e.key==='.') key('dot');
   else if(e.key==='Backspace') key('back'); else if(e.key==='Enter') submit(); else if(e.key==='Escape') closeSheet();
