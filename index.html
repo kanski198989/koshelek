@@ -31,7 +31,7 @@
 [hidden]{display:none!important}
 html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.4;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 32px}
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px calc(96px + env(safe-area-inset-bottom,0px))}
 .app{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -144,7 +144,7 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .keys .save{grid-row:span 2;height:auto;color:#fff;font-size:15px;font-weight:600}
 .keys .save.e{background:var(--exp)} .keys .save.i{background:var(--inc)}
 .err{color:var(--exp);font-size:13px;min-height:1.2em;text-align:center}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:20px;font-size:14px;z-index:30}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:20px;font-size:14px;z-index:30}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}}
   .donut circle.seg-arc{transition:stroke-dasharray .4s,stroke-dashoffset .4s}}
 @media (max-width:360px){.cat .ic{width:38px;height:38px;font-size:18px}}
@@ -171,11 +171,22 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .two button{height:50px;border-radius:14px;font-weight:600}
 .two .cancel{background:var(--surface)} .two .ok{background:var(--accent);color:var(--bg)}
 #cscrim{z-index:25}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:15;display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border-top:1px solid var(--line);
+  padding:6px max(16px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.tabbar button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:12px;color:var(--muted);font-size:12px;font-weight:600}
+.tabbar button svg{width:24px;height:24px}
+.tabbar button[aria-current="page"]{color:var(--accent);background:var(--surface-2)}
+.csec{display:flex;flex-direction:column;gap:8px}
+.chead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.chead h2{margin:0;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.cadd{padding:8px 14px;border-radius:10px;font-weight:600;font-size:14px;color:#fff}
+.cadd.e{background:var(--exp)} .cadd.i{background:var(--inc)}
+.csec .note{margin:2px 0 0;text-align:left}
 .tools{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="pgHome">
   <header>
     <div class="brand">Кошелёк<small id="syncNote">Загрузка…</small></div>
     <label><span hidden>Валюта</span><select id="cur" aria-label="Валюта">
@@ -201,13 +212,30 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 
   <div class="tools">
     <button class="ghost" id="install" hidden>Установить на телефон</button>
-    <button class="ghost" id="catsBtn">Мои категории</button>
     <button class="ghost" id="exportBtn">Сохранить резервную копию</button>
     <label class="ghost" for="importFile" style="cursor:pointer">Восстановить из копии</label>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
   </div>
   <p class="note">Данные хранятся только на этом телефоне. Время от времени сохраняйте резервную копию.</p>
 </div>
+
+<div class="app" id="pgCats" hidden>
+  <header><div class="brand">Категории<small>Свои категории расходов и доходов</small></div></header>
+  <section class="csec">
+    <div class="chead"><h2>Расходы</h2><button class="cadd e" id="cAddExp">＋ Добавить</button></div>
+    <div class="clist" id="clistExp"></div>
+    <p class="note">Стрелкой ↑ поднимайте нужные: первые 12 видны вокруг диаграммы.</p>
+  </section>
+  <section class="csec">
+    <div class="chead"><h2>Доходы</h2><button class="cadd i" id="cAddInc">＋ Добавить</button></div>
+    <div class="clist" id="clistInc"></div>
+  </section>
+</div>
+
+<nav class="tabbar" aria-label="Разделы">
+  <button id="tabHome" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z"/></svg><span>Главная</span></button>
+  <button id="tabCats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg><span>Категории</span></button>
+</nav>
 
 <div class="scrim" id="scrim" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-label="Новая запись">
@@ -245,14 +273,7 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 </div>
 <div class="scrim" id="cscrim" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-label="Категории">
-    <div id="cList">
-      <div class="top" style="margin-bottom:12px"><b style="font-size:17px">Мои категории</b><button class="x" id="cclose" aria-label="Закрыть">×</button></div>
-      <div class="seg" style="align-self:flex-start;margin-bottom:12px"><button class="e" id="cExp">Расходы</button><button class="i" id="cInc">Доходы</button></div>
-      <div class="clist" id="clist"></div>
-      <p class="note" id="cnote" style="margin:10px 0">Порядок стрелками ↑ — первые 12 расходов видны вокруг диаграммы.</p>
-      <button class="addcat" id="cAdd" style="width:100%">＋ Новая категория</button>
-    </div>
-    <div id="cEdit" hidden style="display:flex;flex-direction:column;gap:12px">
+    <div id="cEdit" style="display:flex;flex-direction:column;gap:12px">
       <div class="top"><b style="font-size:17px" id="ceTitle">Новая категория</b><button class="x" id="ceClose" aria-label="Закрыть">×</button></div>
       <div class="ced-prev" id="cePrev"><span class="ic" id="ceIcon">📦</span><input id="ceName" maxlength="20" placeholder="Название, например «Материалы»" aria-label="Название категории"></div>
       <div class="err" id="ceErr" role="alert"></div>
@@ -290,7 +311,8 @@ const MONg=['января','февраля','марта','апреля','мая'
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
-let tx=store.get('tx',[]);           // [{id,type,amount,cat,date,note,created}]
+let tx=store.get('tx',[]);
+if(tx.some(t=>String(t.id).startsWith('demo-'))){ tx=tx.filter(t=>!String(t.id).startsWith('demo-')); store.set('tx',tx); }           // [{id,type,amount,cat,date,note,created}]
 let cur=store.get('cur','₸');
 let period=store.get('period','month');
 let offset=0, openGroup=null, pendingDel=null;
@@ -352,8 +374,7 @@ function render(){
   // ledger
   const L=$('ledger'); L.innerHTML='';
   if(!list.length){
-    L.innerHTML=`<div class="empty"><b>За этот период записей нет</b><span>Нажмите «− Расход» или иконку категории, чтобы добавить первую трату.</span>${tx.length?'':'<button class="ghost" id="demo">Показать пример с тестовыми данными</button>'}</div>`;
-    const dm=$('demo'); if(dm) dm.onclick=addDemo;
+    L.innerHTML=`<div class="empty"><b>За этот период записей нет</b><span>Нажмите «− Расход», микрофон или иконку категории, чтобы добавить запись.</span></div>`;
   } else {
     [['exp','Расходы',expT],['inc','Доходы',incT]].forEach(([type,title,total])=>{
       const sums={}; list.filter(t=>t.type===type).forEach(t=>{sums[t.cat]=(sums[t.cat]||0)+t.amount});
@@ -388,14 +409,6 @@ function render(){
 function persistLocal(){store.set('tx',tx)}
 function save(t){ tx=tx.filter(x=>x.id!==t.id).concat(t); persistLocal(); render(); }
 function remove(id){ tx=tx.filter(x=>x.id!==id); pendingDel=null; persistLocal(); render(); toast('Запись удалена'); }
-function addDemo(){
-  const n=new Date(); const mk=(dd,type,cat,amount,note)=>{const d=new Date(n);d.setDate(d.getDate()-dd);
-    return {id:'demo-'+Math.random().toString(36).slice(2,9),type,cat,amount,date:iso(d),note:'Пример: '+note,created:Date.now()-dd}};
-  const demo=[mk(0,'exp','food',8450,'Магнум'),mk(1,'exp','cafe',4200,'обед'),mk(2,'exp','transport',1200,'автобус'),mk(3,'exp','car',15000,'бензин'),
-    mk(4,'exp','bills',3990,'мобильная связь'),mk(5,'exp','home',22000,'коммуналка'),mk(6,'exp','health',5600,'аптека'),mk(1,'inc','salary',350000,'зарплата'),mk(8,'exp','clothes',18900,'куртка')];
-  demo.forEach(save); toast('Добавлены тестовые записи — их можно удалить');
-}
-
 /* ---------- backup ---------- */
 function exportData(){
   const blob=new Blob([JSON.stringify({app:'koshelek',version:2,exported:new Date().toISOString(),currency:cur,catsExp:EXP,catsInc:INC,tx},null,1)],{type:'application/json'});
@@ -569,30 +582,34 @@ function saveVoice(){
 /* ---------- categories manager ---------- */
 const EMOJIS=['🛒','🍽️','☕','🚌','🚗','⛽','🏠','💡','📱','💊','👕','🎉','🎁','🧸','🎓','✈️','🐾','💇','🏋️','📚','🚬','🍺','🧾','💳','🏦','🧱','🏗️','🚜','🛠️','🔩','🪵','👷','📦','🚛','⚙️','🧰','💼','💰','💵','📈','🤝','🕌','❤️','⭐'];
 const COLORS=['#f2b84b','#ef8a5a','#e5636b','#e67a9a','#c792e0','#9c7ad6','#7b8fd4','#5aa9e6','#4cc3b5','#5cbf86','#8fd07a','#a7b0a9'];
-let cType='exp', cFrom=null, ceId=null, ceType='exp', ceIcon='📦', ceColor=COLORS[0], cPendingDel=null;
-function openCats(){ cType='exp'; cPendingDel=null; $('cEdit').hidden=true; $('cList').hidden=false; $('cscrim').hidden=false; drawCats(); }
-function closeCats(){ $('cscrim').hidden=true; }
+let cFrom=null, ceId=null, ceType='exp', ceIcon='📦', ceColor=COLORS[0], cPendingDel=null;
 function arrOf(t){ return t==='inc'?INC:EXP; }
-function drawCats(){
-  $('cExp').setAttribute('aria-pressed',cType==='exp'); $('cInc').setAttribute('aria-pressed',cType==='inc');
-  $('cnote').hidden=cType!=='exp';
-  const arr=arrOf(cType), box=$('clist'); box.innerHTML='';
+function closeCats(){ $('cscrim').hidden=true; }
+function showTab(t){
+  $('pgHome').hidden=t!=='home'; $('pgCats').hidden=t!=='cats';
+  $('tabHome').toggleAttribute('aria-current',t==='home'); $('tabCats').toggleAttribute('aria-current',t==='cats');
+  if(t==='home'){$('tabHome').setAttribute('aria-current','page')} else {$('tabCats').setAttribute('aria-current','page')}
+  cPendingDel=null; if(t==='cats') drawCats(); else render(); window.scrollTo(0,0);
+}
+function drawCats(){ drawCatList('exp',$('clistExp')); drawCatList('inc',$('clistInc')); }
+function drawCatList(type,box){
+  const arr=arrOf(type); box.innerHTML='';
   arr.forEach((c,i)=>{
     const used=tx.filter(t=>t.cat===c[0]).length;
     const row=document.createElement('div'); row.className='crow'; row.style.setProperty('--c',c[3]);
     const ic=document.createElement('span'); ic.className='ic'; ic.textContent=c[2];
     const nm=document.createElement('b'); nm.textContent=c[1]; const sm=document.createElement('small'); sm.textContent=used?('записей: '+used):'нет записей'; nm.appendChild(sm);
     const up=document.createElement('button'); up.className='ibtn'; up.textContent='↑'; up.disabled=i===0; up.setAttribute('aria-label','Выше');
-    up.onclick=()=>{arr.splice(i-1,0,arr.splice(i,1)[0]); saveCats(); drawCats(); render();};
+    up.onclick=()=>{arr.splice(i-1,0,arr.splice(i,1)[0]); saveCats(); drawCats();};
     const ed=document.createElement('button'); ed.className='ibtn'; ed.textContent='✎'; ed.setAttribute('aria-label','Изменить');
-    ed.onclick=()=>openCatEditor(cType,c[0],'list');
+    ed.onclick=()=>openCatEditor(type,c[0],'list');
     const del=document.createElement('button'); const fixed=c[0]==='other'||c[0]==='other_in'; const conf=cPendingDel===c[0];
     del.className='ibtn'+(conf?' confirm':''); del.textContent=conf?(used?'Удалить? записи → «Другое»':'Удалить?'):'✕';
     del.disabled=fixed; del.setAttribute('aria-label',fixed?'«Другое» удалить нельзя':'Удалить');
     del.onclick=()=>{ if(!conf){cPendingDel=c[0];drawCats();return}
-      const fallback=cType==='inc'?'other_in':'other';
+      const fallback=type==='inc'?'other_in':'other';
       tx.forEach(t=>{ if(t.cat===c[0]) t.cat=fallback }); persistLocal();
-      arr.splice(i,1); saveCats(); cPendingDel=null; drawCats(); render(); toast('Категория удалена'); };
+      arr.splice(i,1); saveCats(); cPendingDel=null; drawCats(); toast('Категория удалена'); };
     row.append(ic,nm,up,ed,del); box.appendChild(row);
   });
 }
@@ -602,7 +619,7 @@ function openCatEditor(type,id,from){
   ceIcon=c?c[2]:'📦'; ceColor=c?c[3]:COLORS[(arrOf(type).length)%COLORS.length];
   $('ceName').value=c?c[1]:''; $('ceErr').textContent='';
   $('ceTitle').textContent=c?'Изменить категорию':(type==='inc'?'Новая категория дохода':'Новая категория расхода');
-  $('cList').hidden=true; $('cEdit').hidden=false; $('cscrim').hidden=false; drawEditor();
+  $('cscrim').hidden=false; drawEditor();
   setTimeout(()=>$('ceName').focus(),50);
 }
 function drawEditor(){
@@ -612,7 +629,7 @@ function drawEditor(){
   const cb=$('ceColors'); cb.innerHTML='';
   COLORS.forEach(col=>{const b=document.createElement('button');b.style.setProperty('--c',col);b.setAttribute('aria-pressed',col===ceColor);b.setAttribute('aria-label','Цвет');b.onclick=()=>{ceColor=col;drawEditor()};cb.appendChild(b)});
 }
-function leaveEditor(){ if(cFrom==='sheet'){ closeCats(); } else { $('cEdit').hidden=true; $('cList').hidden=false; drawCats(); } }
+function leaveEditor(){ closeCats(); if(cFrom==='list') drawCats(); }
 function saveCatEditor(){
   const name=$('ceName').value.trim().replace(/\s+/g,' ');
   if(!name){ $('ceErr').textContent='Введите название категории'; return; }
@@ -632,9 +649,9 @@ $('prev').onclick=()=>{offset--;render()}; $('next').onclick=()=>{offset++;rende
 $('addExp').onclick=()=>openSheet('exp'); $('addInc').onclick=()=>openSheet('inc');
 $('tExp').onclick=()=>{sType='exp';sCat=EXP[0][0];drawSheet()}; $('tInc').onclick=()=>{sType='inc';sCat=INC[0][0];drawSheet()};
 $('close').onclick=closeSheet;
-$('catsBtn').onclick=openCats; $('cclose').onclick=closeCats; $('cscrim').onclick=e=>{if(e.target===$('cscrim'))closeCats()};
-$('cExp').onclick=()=>{cType='exp';cPendingDel=null;drawCats()}; $('cInc').onclick=()=>{cType='inc';cPendingDel=null;drawCats()};
-$('cAdd').onclick=()=>openCatEditor(cType,null,'list'); $('ceCancel').onclick=leaveEditor; $('ceClose').onclick=leaveEditor; $('ceSave').onclick=saveCatEditor;
+$('tabHome').onclick=()=>showTab('home'); $('tabCats').onclick=()=>showTab('cats');
+$('cscrim').onclick=e=>{if(e.target===$('cscrim'))leaveEditor()};
+$('cAddExp').onclick=()=>openCatEditor('exp',null,'list'); $('cAddInc').onclick=()=>openCatEditor('inc',null,'list'); $('ceCancel').onclick=leaveEditor; $('ceClose').onclick=leaveEditor; $('ceSave').onclick=saveCatEditor;
 $('ceName').onkeydown=e=>{if(e.key==='Enter')saveCatEditor()};
 $('addVoice').onclick=openVoice; $('vclose').onclick=closeVoice; $('vscrim').onclick=e=>{if(e.target===$('vscrim'))closeVoice()};
 $('vmic').onclick=startRec; $('vsave').onclick=saveVoice;
