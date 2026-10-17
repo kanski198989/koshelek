@@ -28,6 +28,7 @@
   --bg:#141917; --surface:#1c2320; --surface-2:#252e2a; --fg:#e7ece8; --muted:#97a39c; --line:#2f3934;
   --exp:#f07862; --exp-soft:#3a2420; --inc:#5cc489; --inc-soft:#1c3427; --accent:#7cc7ad; color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-tap-highlight-color:transparent}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.4;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 32px}
@@ -476,16 +477,23 @@ function openVoice(){ $('vtext').value=''; vItems=[]; drawParsed(); $('vscrim').
 function closeVoice(){ stopRec(); $('vscrim').hidden=true; }
 function setHint(m){ $('vhint').textContent=m||(SR?'Нажмите и скажите, например: «продукты 8500, такси 2000 вчера»':'Голосовой ввод в этом браузере недоступен. Нажмите на поле ниже и используйте микрофон на клавиатуре'); }
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-function stopRec(){ if(rec&&recOn){try{rec.stop()}catch(e){}} }
+let recWatch=null, gotResult=false;
+function resetMic(){ recOn=false; clearTimeout(recWatch); $('vmic').classList.remove('on'); $('vmic').setAttribute('aria-label','Начать запись'); }
+function stopRec(){ if(rec&&recOn){try{rec.abort()}catch(e){}} resetMic(); }
+function useKeyboard(msg){ stopRec(); setHint(msg); const t=$('vtext'); t.focus(); }
 function startRec(){
-  if(!SR){ $('vtext').focus(); return; }
-  if(recOn){ stopRec(); return; }
+  if(!SR||store.get('noSR',false)){ useKeyboard('Нажмите на микрофон на клавиатуре и скажите, например: «такси 2000»'); return; }
+  if(recOn){ stopRec(); setHint(); return; }
+  gotResult=false;
   rec=new SR(); rec.lang='ru-RU'; rec.interimResults=true; rec.continuous=false; rec.maxAlternatives=1;
   baseText=$('vtext').value.trim();
-  rec.onstart=()=>{recOn=true;$('vmic').classList.add('on');$('vmic').setAttribute('aria-label','Остановить запись');setHint('Слушаю… говорите')};
-  rec.onresult=e=>{let s='';for(const r of e.results)s+=r[0].transcript;$('vtext').value=(baseText?baseText+', ':'')+s;reparse()};
-  rec.onerror=e=>{const m={'not-allowed':'Нет доступа к микрофону. Разрешите его в настройках браузера','service-not-allowed':'Нет доступа к микрофону. Разрешите его в настройках браузера','network':'Распознавание речи не работает без интернета или сервисов Google. Используйте микрофон на клавиатуре','no-speech':'Ничего не услышал. Нажмите и скажите ещё раз','audio-capture':'Микрофон не найден'};setHint(m[e.error]||'Не получилось распознать. Попробуйте ещё раз')};
-  rec.onend=()=>{recOn=false;$('vmic').classList.remove('on');$('vmic').setAttribute('aria-label','Начать запись');if(/Слушаю/.test($('vhint').textContent))setHint(vItems.length?'Проверьте записи и нажмите «Сохранить»':'Не удалось найти сумму. Скажите, например: «кафе 3000»')};
+  rec.onstart=()=>{recOn=true;$('vmic').classList.add('on');$('vmic').setAttribute('aria-label','Остановить запись');setHint('Слушаю… говорите');
+    clearTimeout(recWatch);
+    recWatch=setTimeout(()=>{ if(recOn&&!gotResult){ store.set('noSR',true);
+      useKeyboard('На этом телефоне распознавание речи в браузере не работает. Нажмите на микрофон на клавиатуре и диктуйте сюда'); } },7000);};
+  rec.onresult=e=>{gotResult=true;clearTimeout(recWatch);let s='';for(const r of e.results)s+=r[0].transcript;$('vtext').value=(baseText?baseText+', ':'')+s;reparse()};
+  rec.onerror=e=>{const m={'not-allowed':'Нет доступа к микрофону. Разрешите его в настройках браузера','service-not-allowed':'Нет доступа к микрофону. Разрешите его в настройках браузера','network':'Распознавание речи не работает без интернета или сервисов Google. Используйте микрофон на клавиатуре','no-speech':'Ничего не услышал. Нажмите и скажите ещё раз','audio-capture':'Микрофон не найден'};clearTimeout(recWatch);if(e.error==='network'||e.error==='language-not-supported'){store.set('noSR',true);useKeyboard(m.network);return}setHint(m[e.error]||'Не получилось распознать. Попробуйте ещё раз')};
+  rec.onend=()=>{resetMic();if(/Слушаю/.test($('vhint').textContent))setHint(vItems.length?'Проверьте записи и нажмите «Сохранить»':'Не удалось найти сумму. Скажите, например: «кафе 3000»')};
   try{rec.start()}catch(e){setHint('Не получилось включить микрофон')}
 }
 function saveVoice(){
