@@ -8,6 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Кошелёк">
+<script>try{if(localStorage.getItem('pin'))document.documentElement.classList.add('locked')}catch(e){}</script>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -209,6 +210,75 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .trow .t .bar{margin-top:4px}
 .trow .v{text-align:right;font-weight:600;font-size:14px} .trow .v small{display:block;color:var(--muted);font-weight:400;font-size:12px}
 .tools{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px}
+/* 5 tabs */
+.tabbar{grid-template-columns:repeat(5,1fr);padding-left:max(6px,env(safe-area-inset-left,0px));padding-right:max(6px,env(safe-area-inset-right,0px))}
+.tabbar button{font-size:11px;min-width:0}
+.tabbar button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabbar button svg{width:22px;height:22px}
+/* notes */
+.cadd.n{background:var(--accent);color:var(--bg)}
+.search{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:100%}
+.nlist{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.nlist .empty{grid-column:1/-1}
+.ncard{background:var(--surface);border-radius:var(--r);padding:12px;text-align:left;display:flex;flex-direction:column;gap:6px;min-width:0;min-height:100px;border-top:4px solid var(--c,var(--surface))}
+.ncard b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ncard p{margin:0;color:var(--muted);font-size:13px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line;overflow-wrap:anywhere}
+.ncard small{color:var(--muted);font-size:11px;margin-top:auto}
+.ntitle{font:inherit;font-size:18px;font-weight:600;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;width:100%}
+.ntext{font:inherit;font-size:16px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;width:100%;min-height:38vh;resize:vertical}
+.nbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.nbar .swatches{flex:1}
+.nbar .swatches button{width:28px;height:28px}
+.nbar .swatches button.none{background:var(--surface);box-shadow:inset 0 0 0 1px var(--line)}
+.nvoice{width:44px;height:44px}
+.nvoice svg{width:22px;height:22px}
+.nmic{height:48px;border-radius:14px;background:var(--accent);color:var(--bg);font-weight:600;font-size:16px;position:relative}
+.nmic.on{background:var(--exp);color:#fff}
+@media (prefers-reduced-motion:no-preference){.nmic.on::after{content:"";position:absolute;inset:-4px;border-radius:17px;border:2px solid var(--exp);animation:npulse 1.2s ease-out infinite}
+  @keyframes npulse{from{opacity:.9}to{opacity:0;transform:scale(1.03,1.2)}}}
+.pinb{padding:7px 12px;border-radius:10px;background:var(--surface);font-size:14px}
+.pinb[aria-pressed="true"]{background:var(--accent);color:var(--bg)}
+/* assets */
+.arow{width:100%;display:grid;grid-template-columns:38px 1fr auto;gap:10px;align-items:center;background:var(--surface);border-radius:12px;padding:9px 12px 9px 10px;text-align:left}
+.arow .ic{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:19px;background:var(--c)}
+.arow b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.arow b small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.arow .v{text-align:right;font-weight:600} .arow .v small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+.stack{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--surface-2)}
+.stack i{display:block;height:100%}
+.slegend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);margin-top:6px}
+.slegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.stitle{font-size:13px;font-weight:600;display:flex;justify-content:space-between}
+.alist{display:flex;flex-direction:column;gap:12px}
+.an{display:grid;grid-template-columns:12px 1fr;gap:10px;align-items:start}
+.an .dot{width:12px;height:12px;border-radius:50%;margin-top:4px}
+.dot.g{background:var(--inc)} .dot.y{background:#e3a72f} .dot.r{background:var(--exp)} .dot.n{background:var(--line)}
+.an b{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:14px}
+.an b span{font-variant-numeric:tabular-nums;white-space:nowrap}
+.an p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field .lbl{margin:0}
+.field input{font:inherit;font-size:16px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+.seg button[aria-pressed="true"].a{background:var(--inc);color:#fff}
+/* lock */
+.lock{position:fixed;inset:0;z-index:50;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px 16px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto}
+.lock.show,.locked .lock{display:flex}
+.locked body>*:not(.lock){visibility:hidden}
+.lbrand{font-family:var(--display);font-weight:700;font-size:20px;color:var(--accent)}
+.ltitle{font-size:16px;font-weight:600;text-align:center}
+.dots{display:flex;gap:18px}
+.dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--muted)}
+.dots i.on{background:var(--fg);border-color:var(--fg)}
+.pad{display:grid;grid-template-columns:repeat(3,72px);gap:14px}
+.pad button{height:72px;border-radius:50%;background:var(--surface);font-size:26px;font-weight:500}
+.pad button:active{background:var(--surface-2)}
+.pad button.t{background:none;font-size:14px;color:var(--muted)}
+.pad button.t:disabled{visibility:hidden}
+.lfoot{display:flex;flex-direction:column;align-items:center;gap:8px;max-width:320px;text-align:center}
+.lfoot button{font-size:14px;color:var(--muted);padding:8px 12px;border-radius:10px}
+.lfoot p{margin:0;font-size:13px;color:var(--muted)}
+.lfoot .danger{background:var(--exp);color:#fff;font-weight:600}
+@media (prefers-reduced-motion:no-preference){.dots.shake{animation:shake .35s}@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}}
 </style>
 </head>
 <body>
@@ -238,6 +308,7 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 
   <div class="tools">
     <button class="ghost" id="install" hidden>Установить на телефон</button>
+    <button class="ghost" id="pinBtn">🔒 Поставить пароль</button>
     <button class="ghost" id="exportBtn">Сохранить резервную копию</button>
     <label class="ghost" for="importFile" style="cursor:pointer">Восстановить из копии</label>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
@@ -282,9 +353,38 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
   </section>
 </div>
 
+<div class="app" id="pgAssets" hidden>
+  <header><div class="brand">Актив и пассив<small>Что у вас есть и что вы должны</small></div></header>
+  <div class="kpis" id="aKpis"></div>
+  <section class="rcard"><h2>Анализ</h2><div class="alist" id="aAnalysis"></div></section>
+  <section class="csec">
+    <div class="chead"><h2>Активы — что есть</h2><button class="cadd i" id="aAddA">＋ Добавить</button></div>
+    <div class="clist" id="aListA"></div>
+  </section>
+  <section class="csec">
+    <div class="chead"><h2>Пассивы — долги</h2><button class="cadd e" id="aAddL">＋ Добавить</button></div>
+    <div class="clist" id="aListL"></div>
+  </section>
+  <section class="rcard" id="aStructCard"><h2>Структура</h2><div id="aStruct" style="display:flex;flex-direction:column;gap:14px"></div></section>
+  <section class="rcard">
+    <div class="rhead"><h2>Капитал по месяцам</h2><div class="legend"><span><i style="background:var(--inc)"></i>Активы</span><span><i style="background:var(--exp)"></i>Долги</span><span><i style="background:var(--accent)"></i>Капитал</span></div></div>
+    <div class="chartbox" id="aChart"></div>
+  </section>
+  <p class="note">Обновляйте суммы, когда они меняются (остаток на карте, долг по кредиту). Капитал запоминается каждый месяц.</p>
+</div>
+
+<div class="app" id="pgNotes" hidden>
+  <header><div class="brand">Заметки<small id="nCount"></small></div>
+    <div style="display:flex;gap:8px;align-items:center"><button class="mic nvoice" id="nVoice" aria-label="Надиктовать новую заметку"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button><button class="cadd n" id="nAdd">＋ Новая</button></div></header>
+  <input class="search" type="search" id="nSearch" placeholder="Поиск по заметкам" aria-label="Поиск по заметкам">
+  <div class="nlist" id="nList"></div>
+</div>
+
 <nav class="tabbar" aria-label="Разделы">
   <button id="tabHome" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z"/></svg><span>Главная</span></button>
   <button id="tabReport"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg><span>Отчёты</span></button>
+  <button id="tabAssets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M8 20h8M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></svg><span>Активы</span></button>
+  <button id="tabNotes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h5"/></svg><span>Заметки</span></button>
   <button id="tabCats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg><span>Категории</span></button>
 </nav>
 
@@ -335,6 +435,50 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
       <div class="two"><button class="cancel" id="ceCancel">Отмена</button><button class="ok" id="ceSave">Сохранить</button></div>
     </div>
   </div>
+</div>
+<div class="scrim" id="nscrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Заметка">
+    <div class="top"><b style="font-size:17px" id="nHead">Новая заметка</b><button class="x" id="nClose" aria-label="Сохранить и закрыть">×</button></div>
+    <input class="ntitle" id="nTitle" maxlength="80" placeholder="Заголовок" aria-label="Заголовок">
+    <textarea class="ntext" id="nText" placeholder="Текст заметки. Нажмите «🎤 Диктовать», чтобы говорить" aria-label="Текст заметки"></textarea>
+    <button class="nmic" id="nMic">🎤 Диктовать</button>
+    <div class="vhint" id="nHint" hidden></div>
+    <div class="nbar"><div class="swatches" id="nColors"></div><button class="pinb" id="nPinB" aria-pressed="false">📌 Закрепить</button></div>
+    <div class="two"><button class="cancel" id="nDel">Удалить</button><button class="ok" id="nSave">Готово</button></div>
+  </div>
+</div>
+<div class="scrim" id="ascrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Актив или пассив">
+    <div class="top">
+      <div class="seg"><button class="a" id="akA">Актив</button><button class="e" id="akL">Пассив (долг)</button></div>
+      <button class="x" id="aClose" aria-label="Закрыть">×</button>
+    </div>
+    <div class="cats" id="aGroups"></div>
+    <div class="field"><label class="lbl" for="aName">Название</label><input id="aName" maxlength="40" placeholder="Например: Kaspi Gold"></div>
+    <div class="field"><label class="lbl" for="aAmt" id="aAmtL">Сумма</label><input id="aAmt" inputmode="decimal" autocomplete="off" placeholder="0"></div>
+    <div class="field" id="aPayF"><label class="lbl" for="aPay">Платёж в месяц (необязательно)</label><input id="aPay" inputmode="decimal" autocomplete="off" placeholder="0"></div>
+    <div class="err" id="aErr" role="alert"></div>
+    <div class="two"><button class="cancel" id="aDel">Отмена</button><button class="ok" id="aSave">Сохранить</button></div>
+  </div>
+</div>
+<div class="scrim" id="pscrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Пароль на вход">
+    <div class="top"><b style="font-size:17px">Пароль на вход</b><button class="x" id="pClose" aria-label="Закрыть">×</button></div>
+    <p class="note" style="text-align:left;margin:0">Пароль включён. Приложение спрашивает его при запуске и если было свёрнуто дольше 30 секунд.</p>
+    <button class="vsave" id="pChange">Изменить пароль</button>
+    <button class="ghost" id="pOff" style="height:48px;font-size:15px">Отключить пароль</button>
+  </div>
+</div>
+<div class="lock" id="lock" role="dialog" aria-modal="true" aria-label="Пароль">
+  <div class="lbrand">Кошелёк</div>
+  <div class="ltitle" id="lTitle">Введите пароль</div>
+  <div class="dots" id="lDots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+  <div class="err" id="lErr" role="alert"></div>
+  <div class="pad" id="lPad">
+    <button>1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>6</button><button>7</button><button>8</button><button>9</button>
+    <button class="t" data-k="cancel" id="lCancel">Отмена</button><button>0</button><button class="t" data-k="back" aria-label="Стереть" style="font-size:22px">⌫</button>
+  </div>
+  <div class="lfoot" id="lFoot"></div>
 </div>
 <div class="toast" id="toast" hidden></div>
 
@@ -462,7 +606,7 @@ function save(t){ tx=tx.filter(x=>x.id!==t.id).concat(t); persistLocal(); render
 function remove(id){ tx=tx.filter(x=>x.id!==id); pendingDel=null; persistLocal(); render(); toast('Запись удалена'); }
 /* ---------- backup ---------- */
 function exportData(){
-  const blob=new Blob([JSON.stringify({app:'koshelek',version:2,exported:new Date().toISOString(),currency:cur,catsExp:EXP,catsInc:INC,tx},null,1)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({app:'koshelek',version:3,exported:new Date().toISOString(),currency:cur,catsExp:EXP,catsInc:INC,tx,notes,assets,nwHist},null,1)],{type:'application/json'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='koshelek-'+today()+'.json';
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   toast('Резервная копия сохранена в «Загрузки»');
@@ -476,7 +620,12 @@ function importData(file){
     [['catsExp',EXP],['catsInc',INC]].forEach(([k,arr])=>{ if(Array.isArray(d[k])) d[k].filter(okCat).forEach(c=>{ if(!arr.some(x=>x[0]===c[0])) arr.push(c.slice()) }) });
     saveCats();
     const ids=new Set(tx.map(t=>t.id)); const add=ok.filter(t=>!ids.has(t.id));
-    tx=tx.concat(add); persistLocal(); render(); toast('Восстановлено записей: '+add.length);
+    tx=tx.concat(add); persistLocal();
+    let nAdd=0, aAdd=0;
+    if(Array.isArray(d.notes)){ const nid=new Set(notes.map(n=>n.id)); d.notes.forEach(n=>{ if(n&&n.id&&!nid.has(n.id)&&typeof (n.text??'')==='string'){ notes.push({id:String(n.id),title:String(n.title||''),text:String(n.text||''),color:/^#[0-9a-f]{6}$/i.test(n.color||'')?n.color:'',pin:!!n.pin,created:+n.created||Date.now(),upd:+n.upd||Date.now()}); nAdd++; } }); store.set('notes',notes); }
+    if(Array.isArray(d.assets)){ const aid=new Set(assets.map(a=>a.id)); d.assets.forEach(a=>{ if(a&&a.id&&!aid.has(a.id)&&(a.kind==='a'||a.kind==='l')&&typeof a.amount==='number'){ assets.push({id:String(a.id),kind:a.kind,g:String(a.g||''),name:String(a.name||''),amount:a.amount,pay:+a.pay||0,upd:+a.upd||Date.now()}); aAdd++; } }); store.set('assets',assets); }
+    if(d.nwHist&&typeof d.nwHist==='object') Object.keys(d.nwHist).forEach(k=>{ const v=d.nwHist[k]; if(/^\d{4}-\d\d$/.test(k)&&!nwHist[k]&&v&&typeof v.a==='number'&&typeof v.l==='number') nwHist[k]={a:v.a,l:v.l}; }); store.set('nwHist',nwHist);
+    render(); toast('Восстановлено: записей '+add.length+(nAdd?', заметок '+nAdd:'')+(aAdd?', активов и долгов '+aAdd:''));
   }catch(e){toast('Этот файл не похож на резервную копию Кошелька')}};
   r.readAsText(file);
 }
@@ -637,9 +786,9 @@ let cFrom=null, ceId=null, ceType='exp', ceIcon='📦', ceColor=COLORS[0], cPend
 function arrOf(t){ return t==='inc'?INC:EXP; }
 function closeCats(){ $('cscrim').hidden=true; }
 function showTab(t){
-  [['home','pgHome','tabHome'],['cats','pgCats','tabCats'],['report','pgReport','tabReport']].forEach(([k,pg,tb])=>{
+  [['home','pgHome','tabHome'],['cats','pgCats','tabCats'],['report','pgReport','tabReport'],['assets','pgAssets','tabAssets'],['notes','pgNotes','tabNotes']].forEach(([k,pg,tb])=>{
     $(pg).hidden=t!==k; if(t===k) $(tb).setAttribute('aria-current','page'); else $(tb).removeAttribute('aria-current'); });
-  cPendingDel=null; if(t==='cats') drawCats(); else if(t==='report') drawReport(); else render(); window.scrollTo(0,0);
+  cPendingDel=null; if(t==='cats') drawCats(); else if(t==='report') drawReport(); else if(t==='assets') drawAssets(); else if(t==='notes') drawNotes(); else render(); window.scrollTo(0,0);
 }
 function drawCats(){ drawCatList('exp',$('clistExp')); drawCatList('inc',$('clistInc')); }
 function drawCatList(type,box){
@@ -755,6 +904,273 @@ function exportCSV(all){
   toast('Файл сохранён в «Загрузки»: записей '+rows.length);
 }
 
+/* ---------- notes ---------- */
+let notes=store.get('notes',[]); if(!Array.isArray(notes)) notes=[];
+let nEditId=null, nColor='', nPin=false, nDelConf=false, nQuery='';
+const NCOLORS=['','#f2b84b','#ef8a5a','#e67a9a','#9c7ad6','#5aa9e6','#5cbf86'];
+function fmtDate(ts){const d=new Date(ts);return d.getDate()+' '+MONg[d.getMonth()]+(d.getFullYear()!==new Date().getFullYear()?' '+d.getFullYear():'')}
+function drawNotes(){
+  $('nCount').textContent=notes.length?('Всего заметок: '+notes.length):'Дела, идеи, напоминания';
+  const q=nQuery.trim().toLowerCase();
+  const list=notes.filter(n=>!q||((n.title||'')+' '+(n.text||'')).toLowerCase().includes(q)).sort((a,b)=>((b.pin?1:0)-(a.pin?1:0))||b.upd-a.upd);
+  const box=$('nList'); box.innerHTML='';
+  if(!list.length){ box.innerHTML=q?'<div class="empty"><b>Ничего не найдено</b></div>':'<div class="empty"><b>Заметок пока нет</b><span>Нажмите «＋ Новая», чтобы записать мысль, список покупок или напоминание.</span></div>'; return; }
+  list.forEach(n=>{
+    const b=document.createElement('button'); b.className='ncard'; if(n.color) b.style.setProperty('--c',n.color);
+    const lines=(n.text||'').split('\n'); const title=n.title||lines[0]||'Без названия'; const body=n.title?n.text:lines.slice(1).join('\n');
+    const t=document.createElement('b'); t.textContent=(n.pin?'📌 ':'')+title;
+    const p=document.createElement('p'); p.textContent=body||'';
+    const s=document.createElement('small'); s.textContent=fmtDate(n.upd);
+    b.append(t); if(body) b.append(p); b.append(s);
+    b.onclick=()=>openNote(n.id); box.appendChild(b);
+  });
+}
+/* voice for notes */
+let nRec=null, nRecOn=false, nBase='', nWatch=null, nGot=false;
+function nHint(m){ $('nHint').hidden=!m; $('nHint').textContent=m||''; }
+function nStop(){ const was=nRecOn; nRecOn=false; clearTimeout(nWatch); if(nRec&&was){try{nRec.stop()}catch(e){}} $('nMic').classList.remove('on'); $('nMic').textContent='🎤 Диктовать'; }
+function nKeyboard(m){ nStop(); nHint(m); const t=$('nText'); t.focus(); try{t.setSelectionRange(t.value.length,t.value.length)}catch(e){} }
+function nStartRec(){
+  if(!SR||store.get('noSR',false)){ nKeyboard('Нажмите на микрофон 🎤 на клавиатуре телефона и диктуйте прямо в заметку'); return; }
+  if(nRecOn){ nStop(); nHint(''); return; }
+  nGot=false; nBase=$('nText').value.replace(/\s+$/,'');
+  try{ nRec=new SR(); }catch(e){ nKeyboard('Нажмите на микрофон 🎤 на клавиатуре телефона и диктуйте'); return; }
+  nRec.lang='ru-RU'; nRec.interimResults=true; nRec.continuous=true; nRec.maxAlternatives=1;
+  nRec.onstart=()=>{ nRecOn=true; $('nMic').classList.add('on'); $('nMic').textContent='⏹ Остановить'; nHint('Слушаю… говорите. Нажмите «Остановить», когда закончите');
+    clearTimeout(nWatch); nWatch=setTimeout(()=>{ if(nRecOn&&!nGot){ store.set('noSR',true);
+      nKeyboard('На этом телефоне распознавание речи в приложении не работает. Нажмите на микрофон 🎤 на клавиатуре и диктуйте'); } },7000); };
+  nRec.onresult=e=>{ nGot=true; clearTimeout(nWatch); let s='';
+    for(let i=0;i<e.results.length;i++) s+=e.results[i][0].transcript;
+    s=s.replace(/\s+/g,' ').trim(); if(s) s=s[0].toUpperCase()+s.slice(1);
+    $('nText').value=nBase+(nBase&&s?'\n':'')+s; };
+  nRec.onerror=e=>{ clearTimeout(nWatch);
+    if(e.error==='network'||e.error==='language-not-supported'||e.error==='service-not-allowed'){ store.set('noSR',true); nKeyboard('Распознавание речи в приложении недоступно. Нажмите на микрофон 🎤 на клавиатуре и диктуйте'); return; }
+    const m={'not-allowed':'Нет доступа к микрофону. Разрешите его в настройках','no-speech':'Ничего не услышал. Нажмите «Диктовать» и говорите','audio-capture':'Микрофон не найден','aborted':''};
+    nStop(); nHint(m[e.error]??'Не получилось распознать. Попробуйте ещё раз'); };
+  nRec.onend=()=>{ const was=nRecOn; nStop(); if(was&&/Слушаю/.test($('nHint').textContent)) nHint(''); };
+  try{ nRec.start(); }catch(e){ nKeyboard('Не получилось включить микрофон. Нажмите на микрофон 🎤 на клавиатуре'); }
+}
+function openNote(id,voice){
+  nStop(); nHint('');
+  const n=id?notes.find(x=>x.id===id):null; nEditId=n?n.id:null;
+  $('nTitle').value=n?n.title||'':''; $('nText').value=n?n.text||'':'';
+  nColor=n?n.color||'':''; nPin=n?!!n.pin:false; nDelConf=false;
+  $('nHead').textContent=n?'Заметка':'Новая заметка';
+  $('nscrim').hidden=false; drawNoteEd();
+  if(voice) nStartRec(); else if(!n) setTimeout(()=>$('nText').focus(),60);
+}
+function drawNoteEd(){
+  $('nPinB').setAttribute('aria-pressed',nPin); $('nPinB').textContent=nPin?'📌 Закреплена':'📌 Закрепить';
+  const cb=$('nColors'); cb.innerHTML='';
+  NCOLORS.forEach(c=>{const b=document.createElement('button'); if(c) b.style.setProperty('--c',c); else b.className='none';
+    b.setAttribute('aria-pressed',c===nColor); b.setAttribute('aria-label',c?'Цвет заметки':'Без цвета'); b.onclick=()=>{nColor=c;drawNoteEd()}; cb.appendChild(b)});
+  const d=$('nDel'); d.textContent=nEditId?(nDelConf?'Точно удалить?':'Удалить'):'Отмена';
+  d.style.background=nDelConf?'var(--exp)':''; d.style.color=nDelConf?'#fff':'';
+}
+function saveNote(){
+  nStop(); nHint('');
+  const title=$('nTitle').value.trim(), text=$('nText').value.replace(/\s+$/,'');
+  $('nscrim').hidden=true;
+  if(!title&&!text.trim()){ if(nEditId){notes=notes.filter(x=>x.id!==nEditId);store.set('notes',notes);toast('Пустая заметка удалена')} drawNotes(); return; }
+  const now=Date.now();
+  if(nEditId){ const n=notes.find(x=>x.id===nEditId);
+    if(n.title!==title||n.text!==text||(n.color||'')!==nColor||!!n.pin!==nPin){ Object.assign(n,{title,text,color:nColor,pin:nPin,upd:now}); toast('Заметка сохранена'); } }
+  else { notes.push({id:'n'+now.toString(36)+Math.random().toString(36).slice(2,6),title,text,color:nColor,pin:nPin,created:now,upd:now}); toast('Заметка сохранена'); }
+  store.set('notes',notes); drawNotes();
+}
+function delNote(){
+  nStop();
+  if(!nEditId){ $('nscrim').hidden=true; return; }
+  if(!nDelConf){ nDelConf=true; drawNoteEd(); return; }
+  notes=notes.filter(x=>x.id!==nEditId); store.set('notes',notes); $('nscrim').hidden=true; drawNotes(); toast('Заметка удалена');
+}
+
+/* ---------- assets & liabilities ---------- */
+// [id, name, icon, color, liquid(актив) / срочный(долг)]
+const A_GROUPS=[['cash','Наличные','💵','#5cbf86',1],['bank','Карта, счёт','💳','#4cc3b5',1],['deposit','Депозит','🏦','#5aa9e6',1],['receivable','Мне должны','🤝','#8fd07a',0],
+  ['invest','Инвестиции','📈','#7b8fd4',0],['realty','Недвижимость','🏠','#9c7ad6',0],['car','Машина','🚗','#c792e0',0],['equip','Техника, оборудование','🛠️','#f2b84b',0],['other_a','Другое','📦','#a7b0a9',0]];
+const L_GROUPS=[['credit','Кредит','🏦','#e5636b',0],['mortgage','Ипотека','🏠','#b45a78',0],['install','Рассрочка','🧾','#ef8a5a',1],['card','Кредитная карта','💳','#d9543f',1],
+  ['debt','Долг людям','🤝','#e67a9a',1],['supplier','Поставщикам, налоги','🧱','#f2b84b',1],['other_l','Другое','📦','#a7b0a9',0]];
+let assets=store.get('assets',[]); if(!Array.isArray(assets)) assets=[];
+let nwHist=store.get('nwHist',{}); if(!nwHist||typeof nwHist!=='object') nwHist={};
+let aKind='a', aGroup='cash', aEditId=null, aDelConf=false;
+const groupsOf=k=>k==='a'?A_GROUPS:L_GROUPS;
+const grpOf=(k,g)=>groupsOf(k).find(x=>x[0]===g)||groupsOf(k).slice(-1)[0];
+const parseNum=v=>{const n=parseFloat(String(v).replace(/[\s ]/g,'').replace(',','.'));return isFinite(n)?n:NaN};
+const sumK=k=>assets.filter(x=>x.kind===k).reduce((s,x)=>s+x.amount,0);
+function saveAssets(){
+  store.set('assets',assets);
+  nwHist[iso(new Date()).slice(0,7)]={a:sumK('a'),l:sumK('l')}; store.set('nwHist',nwHist);
+}
+function monthAvg(type){
+  const end=new Date(); const start=new Date(); start.setDate(start.getDate()-90); const s=iso(start), e=iso(end);
+  const list=tx.filter(t=>t.type===type&&t.date>=s&&t.date<=e); if(!list.length) return 0;
+  const first=list.reduce((m,t)=>t.date<m?t.date:m,e);
+  const days=(end-new Date(first+'T00:00'))/864e5+1;
+  return list.reduce((a,t)=>a+t.amount,0)/(Math.max(days,30)/30.4);
+}
+const pct=v=>Math.round(v*100)+'%';
+function drawAssets(){
+  const A=sumK('a'), L=sumK('l'), NW=A-L;
+  const liquid=assets.filter(x=>x.kind==='a'&&grpOf('a',x.g)[4]).reduce((s,x)=>s+x.amount,0);
+  const shortL=assets.filter(x=>x.kind==='l'&&grpOf('l',x.g)[4]).reduce((s,x)=>s+x.amount,0);
+  const pays=assets.filter(x=>x.kind==='l').reduce((s,x)=>s+(x.pay||0),0);
+  const avgExp=monthAvg('exp'), avgInc=monthAvg('inc');
+  $('aKpis').innerHTML=`<div class="kpi"><span>Активы</span><b class="amt-inc">${esc(money(A))}</b></div><div class="kpi"><span>Пассивы (долги)</span><b class="amt-exp">${esc(money(L))}</b></div>
+    <div class="kpi"><span>Капитал = активы − долги</span><b class="${NW<0?'amt-exp':'amt-inc'}">${esc(money(NW,true))}</b></div><div class="kpi"><span>Долговая нагрузка</span><b>${A?pct(L/A):(L?'—':'0%')}</b></div>`;
+
+  // analysis
+  const an=[]; const row=(c,t,v,p)=>an.push(`<div class="an"><span class="dot ${c}"></span><div><b>${esc(t)}<span>${esc(v)}</span></b><p>${esc(p)}</p></div></div>`);
+  if(!assets.length){
+    row('n','Начните с того, что у вас есть','','Добавьте деньги на картах, наличные, машину, технику — и долги: кредиты, рассрочки, кто кому должен. Я посчитаю капитал и покажу, всё ли в порядке.');
+  } else {
+    if(NW>0) row('g','Капитал положительный',money(NW,true),'Имущества больше, чем долгов.');
+    else if(NW<0) row('r','Капитал отрицательный',money(NW,true),'Долгов больше, чем имущества. Главная задача — сокращать долги и не брать новые.');
+    else row('y','Капитал нулевой','0','Имущество и долги равны.');
+
+    if(L>0){ if(!A) row('r','Доля долгов','—','Есть долги, но не указано имущество. Добавьте активы, чтобы оценить нагрузку.');
+      else { const d=L/A; row(d<.3?'g':d<.6?'y':'r','Доля долгов',pct(d), d<.3?'Нормально: долги меньше трети имущества.':d<.6?'Средне: долги занимают заметную часть имущества. Лучше не брать новые.':'Высоко: больше 60% имущества — в долг. Стоит в первую очередь гасить долги.'); } }
+    else row('g','Долгов нет','0%','Отлично — всё имущество ваше.');
+
+    if(avgExp>0){ const m=liquid/avgExp; const mt=(Math.round(m*10)/10).toLocaleString('ru-RU')+' мес.';
+      row(m>=6?'g':m>=3?'y':'r','Финансовая подушка',mt,`Наличных, денег на картах и депозитах хватит примерно на ${mt} при ваших расходах (~${money(Math.round(avgExp))} в месяц). Хороший запас — от 3 до 6 месяцев.`); }
+    else row('n','Финансовая подушка','?','Добавляйте расходы на Главной — посчитаю, на сколько месяцев хватит денег.');
+
+    if(L>0){
+      if(pays>0&&avgInc>0){ const r=pays/avgInc; row(r<=.3?'g':r<=.5?'y':'r','Платежи по долгам',pct(r)+' дохода',`Платите ${money(pays)} в месяц при среднем доходе ~${money(Math.round(avgInc))}. Безопасно — до 30% дохода, больше 50% — опасно.`); }
+      else if(pays>0) row('n','Платежи по долгам',money(pays)+'/мес','Добавляйте доходы на Главной — сравню платежи с доходом.');
+      else row('n','Платежи по долгам','?','Укажите у кредитов и рассрочек платёж в месяц — посчитаю нагрузку на доход.');
+    }
+    if(shortL>0){ const c=liquid/shortL; row(c>=1?'g':c>=.5?'y':'r','Срочные долги',pct(c)+' покрыто', c>=1?'Свободных денег хватит, чтобы закрыть срочные долги (кредитка, рассрочка, долги людям и поставщикам).':`Свободных денег не хватит, чтобы закрыть срочные долги: не хватает ${money(shortL-liquid)}.`); }
+    if(A>0){ const lq=liquid/A; if(lq<.1) row('y','Живые деньги',pct(lq)+' активов','Почти всё имущество — недвижимость, машина, техника. Если срочно понадобятся деньги, быстро их не достать.'); }
+
+    const card=assets.filter(x=>x.kind==='l'&&x.g==='card').reduce((s,x)=>s+x.amount,0);
+    const big=assets.filter(x=>x.kind==='l').sort((a,b)=>b.amount-a.amount)[0];
+    if(card>0) row('n','Совет',' ','Кредитные карты обычно самые дорогие по процентам — гасите их в первую очередь.');
+    else if(big) row('n','Самый крупный долг',money(big.amount),(big.name||grpOf('l',big.g)[1])+'. Если есть лишние деньги, досрочное погашение самого дорогого по процентам долга экономит больше всего.');
+
+    const ks=Object.keys(nwHist).sort(); const cm=iso(new Date()).slice(0,7); const prev=ks.filter(k=>k<cm).pop();
+    if(prev){ const p=nwHist[prev], dNW=NW-(p.a-p.l); const [py,pm]=prev.split('-');
+      row(dNW>=0?'g':'y','С прошлого раза',money(dNW,true),`Капитал ${dNW>=0?'вырос':'уменьшился'} по сравнению с ${['январём','февралём','мартом','апрелем','маем','июнем','июлем','августом','сентябрём','октябрём','ноябрём','декабрём'][+pm-1]} ${py}.`); }
+  }
+  $('aAnalysis').innerHTML=an.join('');
+
+  // lists
+  [['a',$('aListA')],['l',$('aListL')]].forEach(([k,box])=>{
+    box.innerHTML='';
+    const items=assets.filter(x=>x.kind===k).sort((a,b)=>b.amount-a.amount);
+    if(!items.length){ box.innerHTML=`<p class="note" style="text-align:left;margin:0">${k==='a'?'Пока пусто. Например: наличные, карта, машина, оборудование.':'Пока пусто. Например: кредит, рассрочка, долг поставщику.'}</p>`; return; }
+    items.forEach(x=>{ const g=grpOf(k,x.g);
+      const b=document.createElement('button'); b.className='arow'; b.style.setProperty('--c',g[3]);
+      b.innerHTML=`<span class="ic">${esc(g[2])}</span><b></b><span class="v num ${k==='a'?'amt-inc':'amt-exp'}">${esc(money(x.amount))}${k==='l'&&x.pay?`<small>${esc(money(x.pay))}/мес</small>`:''}</span>`;
+      const nm=b.querySelector('b'); nm.textContent=x.name||g[1]; const sm=document.createElement('small'); sm.textContent=g[1]; nm.appendChild(sm);
+      b.onclick=()=>openAsset(k,x.id); box.appendChild(b); });
+  });
+
+  // structure
+  const st=$('aStruct'); st.innerHTML=''; $('aStructCard').hidden=!(A||L);
+  [['a','Активы',A],['l','Долги',L]].forEach(([k,title,tot])=>{ if(!tot) return;
+    const by={}; assets.filter(x=>x.kind===k).forEach(x=>{const g=grpOf(k,x.g)[0];by[g]=(by[g]||0)+x.amount});
+    const gs=Object.keys(by).sort((a,b)=>by[b]-by[a]);
+    let bar='', leg=''; gs.forEach(id=>{const g=grpOf(k,id); bar+=`<i style="width:${by[id]/tot*100}%;background:${g[3]}" title="${esc(g[1])}"></i>`; leg+=`<span><i style="background:${g[3]}"></i>${esc(g[1])} ${pct(by[id]/tot)}</span>`});
+    st.insertAdjacentHTML('beforeend',`<div><div class="stitle"><span>${title}</span><span class="num">${esc(money(tot))}</span></div><div class="stack" style="margin-top:6px">${bar}</div><div class="slegend">${leg}</div></div>`); });
+
+  // chart
+  const ks=Object.keys(nwHist).sort().slice(-12);
+  if(ks.length<2){ $('aChart').innerHTML='<p class="note" style="text-align:left;margin:0">График появится со следующего месяца: капитал запоминается автоматически каждый месяц, когда вы что-то меняете.</p>'; return; }
+  const W=360,H=190,Lm=44,B=20,T=8,pw=W-Lm-4,ph=H-B-T;
+  const vals=ks.map(k=>nwHist[k]); const max=Math.max(...vals.map(v=>Math.max(v.a,v.l)),1); const minNW=Math.min(0,...vals.map(v=>v.a-v.l));
+  let top=1; {const p=Math.pow(10,Math.floor(Math.log10(max)));top=[1,2,2.5,5,10].map(x=>x*p).find(v=>v>=max);}
+  const lo=minNW<0?-top*Math.ceil(-minNW/top*4)/4:0; const y=v=>T+ph-(v-lo)/(top-lo)*ph; let g='';
+  for(let i=0;i<=4;i++){const v=lo+(top-lo)*i/4;g+=`<line class="grid" x1="${Lm}" x2="${W-4}" y1="${y(v)}" y2="${y(v)}"/><text x="${Lm-4}" y="${y(v)+3}" text-anchor="end">${short(v)}</text>`;}
+  const cw=pw/ks.length,bw=Math.min(10,cw*.3); let pts='';
+  ks.forEach((k,i)=>{const v=nwHist[k],cx=Lm+cw*i+cw/2;
+    if(v.a) g+=`<rect x="${cx-bw-1}" y="${y(v.a)}" width="${bw}" height="${Math.max(y(0)-y(v.a),1)}" rx="2" fill="var(--inc)" opacity=".75"/>`;
+    if(v.l) g+=`<rect x="${cx+1}" y="${y(v.l)}" width="${bw}" height="${Math.max(y(0)-y(v.l),1)}" rx="2" fill="var(--exp)" opacity=".75"/>`;
+    pts+=`${cx},${y(v.a-v.l)} `; g+=`<text x="${cx}" y="${H-6}" text-anchor="middle">${MONs[+k.slice(5)-1]}</text>`;});
+  g+=`<polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2"/>`+ks.map((k,i)=>{const v=nwHist[k];return `<circle cx="${Lm+cw*i+cw/2}" cy="${y(v.a-v.l)}" r="3" fill="var(--accent)"><title>${k}: капитал ${money(v.a-v.l)}</title></circle>`}).join('');
+  $('aChart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Активы, долги и капитал по месяцам">${g}</svg>`;
+}
+function openAsset(kind,id){
+  const x=id?assets.find(a=>a.id===id):null; aEditId=x?x.id:null; aKind=x?x.kind:kind; aGroup=x?x.g:groupsOf(aKind)[0][0]; aDelConf=false;
+  $('aName').value=x?x.name||'':''; $('aAmt').value=x?String(x.amount).replace('.',','):''; $('aPay').value=x&&x.pay?String(x.pay).replace('.',','):'';
+  $('aErr').textContent=''; $('ascrim').hidden=false; drawAssetEd(); if(!x) setTimeout(()=>$('aAmt').focus(),60);
+}
+function drawAssetEd(){
+  $('akA').setAttribute('aria-pressed',aKind==='a'); $('akL').setAttribute('aria-pressed',aKind==='l');
+  $('aPayF').hidden=aKind!=='l'; $('aAmtL').textContent=(aKind==='a'?'Сколько стоит / сколько денег, ':'Сколько осталось отдать, ')+cur;
+  $('aName').placeholder=aKind==='a'?'Например: Kaspi Gold':'Например: кредит на машину';
+  const box=$('aGroups'); box.innerHTML='';
+  groupsOf(aKind).forEach(g=>{const b=document.createElement('button'); b.style.setProperty('--c',g[3]); b.setAttribute('aria-pressed',g[0]===aGroup);
+    b.innerHTML=`<span class="ic">${esc(g[2])}</span>`; b.append(g[1]); b.onclick=()=>{aGroup=g[0];drawAssetEd()}; box.appendChild(b)});
+  const d=$('aDel'); d.textContent=aEditId?(aDelConf?'Точно удалить?':'Удалить'):'Отмена'; d.style.background=aDelConf?'var(--exp)':''; d.style.color=aDelConf?'#fff':'';
+}
+function saveAsset(){
+  const amount=parseNum($('aAmt').value); if(!(amount>=0)||$('aAmt').value.trim()===''){ $('aErr').textContent='Введите сумму'; return; }
+  const pay=aKind==='l'?parseNum($('aPay').value):NaN;
+  const item={id:aEditId||('a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),kind:aKind,g:aGroup,name:$('aName').value.trim(),amount:Math.round(amount*100)/100,pay:pay>0?Math.round(pay*100)/100:0,upd:Date.now()};
+  assets=assets.filter(a=>a.id!==item.id).concat(item); saveAssets(); $('ascrim').hidden=true; drawAssets(); toast(aEditId?'Изменено':'Добавлено');
+}
+function delAsset(){
+  if(!aEditId){ $('ascrim').hidden=true; return; }
+  if(!aDelConf){ aDelConf=true; drawAssetEd(); return; }
+  assets=assets.filter(a=>a.id!==aEditId); saveAssets(); $('ascrim').hidden=true; drawAssets(); toast('Удалено');
+}
+
+/* ---------- password ---------- */
+let pinMode=null, pinStep=0, pinBuf='', pinFirst='', pinFails=0, pinUntil=0, hiddenAt=0, forgotStep=0;
+const pinOn=()=>{const p=store.get('pin',null);return !!(p&&p.hash)};
+async function hashPin(p,salt){ const s=salt+':'+p;
+  try{ if(window.crypto&&crypto.subtle){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')} }catch(e){}
+  let h=5381; for(const ch of s) h=((h*33)^ch.charCodeAt(0))>>>0; return 'd'+h.toString(16); }
+async function checkPin(p){ const s=store.get('pin',null); return !!s&&(await hashPin(p,s.salt))===s.hash; }
+async function savePin(p){ const salt=Math.random().toString(36).slice(2,10)+Date.now().toString(36); store.set('pin',{salt,hash:await hashPin(p,salt)}); }
+function drawPinBtn(){ $('pinBtn').textContent=pinOn()?'🔒 Пароль: включён':'🔒 Поставить пароль'; }
+function openPin(mode){ pinMode=mode; pinStep=0; pinBuf=''; pinFirst=''; forgotStep=0; $('lErr').textContent=''; $('lock').classList.add('show'); drawPin(); }
+function closePin(){ $('lock').classList.remove('show'); document.documentElement.classList.remove('locked'); pinMode=null; }
+function drawPin(){
+  const T={unlock:['Введите пароль'],set:['Придумайте пароль из 4 цифр','Повторите пароль'],change:['Введите текущий пароль','Новый пароль из 4 цифр','Повторите новый пароль'],off:['Введите текущий пароль']};
+  $('lTitle').textContent=T[pinMode][pinStep]||'';
+  $('lDots').querySelectorAll('i').forEach((d,i)=>d.classList.toggle('on',i<pinBuf.length));
+  $('lCancel').disabled=pinMode==='unlock';
+  const f=$('lFoot'); f.innerHTML='';
+  if(pinMode!=='unlock') return;
+  if(forgotStep===0){ const b=document.createElement('button'); b.textContent='Забыли пароль?'; b.onclick=()=>{forgotStep=1;drawPin()}; f.appendChild(b); }
+  else { const p=document.createElement('p'); p.textContent='Сбросить пароль можно только вместе со всеми данными на этом телефоне. После сброса можно восстановить резервную копию, если вы её сохраняли.';
+    const b=document.createElement('button'); b.className='danger'; b.textContent=forgotStep===1?'Стереть всё и сбросить пароль':'Нажмите ещё раз — данные удалятся';
+    b.onclick=()=>{ if(forgotStep===1){forgotStep=2;drawPin();return} try{localStorage.clear()}catch(e){} location.reload(); };
+    const c=document.createElement('button'); c.textContent='Я вспомнил пароль'; c.onclick=()=>{forgotStep=0;drawPin()};
+    f.append(p,b,c); }
+}
+function pinWrong(msg){ $('lErr').textContent=msg; const d=$('lDots'); d.classList.remove('shake'); void d.offsetWidth; d.classList.add('shake'); if(navigator.vibrate) try{navigator.vibrate(120)}catch(e){} drawPin(); }
+function pinKey(k){
+  if(!pinMode) return;
+  if(k==='cancel'){ if(pinMode!=='unlock') closePin(); return; }
+  if(k==='back'){ pinBuf=pinBuf.slice(0,-1); drawPin(); return; }
+  if(Date.now()<pinUntil){ $('lErr').textContent='Подождите '+Math.ceil((pinUntil-Date.now())/1000)+' сек.'; return; }
+  if(!/^\d$/.test(k)||pinBuf.length>=4) return;
+  pinBuf+=k; $('lErr').textContent=''; drawPin();
+  if(pinBuf.length===4) setTimeout(pinDone,120);
+}
+async function pinDone(){
+  const p=pinBuf; pinBuf=''; const mode=pinMode;
+  if(mode==='unlock'||mode==='off'||(mode==='change'&&pinStep===0)){
+    if(!(await checkPin(p))){ pinFails++; if(pinFails>=5){pinUntil=Date.now()+30000;pinFails=0;pinWrong('Слишком много попыток. Подождите 30 секунд')} else pinWrong('Неверный пароль'); return; }
+    pinFails=0;
+    if(mode==='unlock'){ closePin(); return; }
+    if(mode==='off'){ try{localStorage.removeItem('pin')}catch(e){} closePin(); drawPinBtn(); toast('Пароль отключён'); return; }
+    pinStep=1; drawPin(); return;
+  }
+  const first=mode==='set'?0:1;
+  if(pinStep===first){ pinFirst=p; pinStep++; drawPin(); return; }
+  if(p!==pinFirst){ pinStep=first; pinFirst=''; pinWrong('Пароли не совпали. Попробуйте ещё раз'); return; }
+  await savePin(p); closePin(); drawPinBtn(); toast(mode==='set'?'Пароль включён':'Пароль изменён');
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){ hiddenAt=Date.now(); return; }
+  if(pinOn()&&!pinMode&&hiddenAt&&Date.now()-hiddenAt>30000){ document.documentElement.classList.add('locked'); openPin('unlock'); }
+});
+
 /* ---------- wiring ---------- */
 $('periods').onclick=e=>{const p=e.target.closest('button')?.dataset.p;if(p){period=p;offset=0;openGroup=null;store.set('period',p);render()}};
 $('prev').onclick=()=>{offset--;render()}; $('next').onclick=()=>{offset++;render()};
@@ -773,13 +1189,32 @@ let vt; $('vtext').oninput=()=>{clearTimeout(vt);vt=setTimeout(reparse,250)};
 $('vchips').onclick=e=>{const b=e.target.closest('button');if(!b)return;$('vtext').value=b.textContent;reparse()}; $('scrim').onclick=e=>{if(e.target===$('scrim'))closeSheet()};
 $('keys').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='save')return submit();key(b.dataset.k||b.textContent)};
 $('cur').value=cur; $('cur').onchange=e=>{cur=e.target.value;store.set('cur',cur);render()};
+$('tabAssets').onclick=()=>showTab('assets'); $('tabNotes').onclick=()=>showTab('notes');
+$('nAdd').onclick=()=>openNote(null); $('nVoice').onclick=()=>openNote(null,true); $('nMic').onclick=nStartRec; $('nSearch').oninput=e=>{nQuery=e.target.value;drawNotes()};
+$('nClose').onclick=saveNote; $('nSave').onclick=saveNote; $('nDel').onclick=delNote; $('nPinB').onclick=()=>{nPin=!nPin;drawNoteEd()};
+$('nscrim').onclick=e=>{if(e.target===$('nscrim'))saveNote()};
+$('aAddA').onclick=()=>openAsset('a',null); $('aAddL').onclick=()=>openAsset('l',null);
+$('akA').onclick=()=>{if(aKind!=='a'){aKind='a';aGroup=A_GROUPS[0][0];drawAssetEd()}}; $('akL').onclick=()=>{if(aKind!=='l'){aKind='l';aGroup=L_GROUPS[0][0];drawAssetEd()}};
+$('aClose').onclick=()=>$('ascrim').hidden=true; $('ascrim').onclick=e=>{if(e.target===$('ascrim'))$('ascrim').hidden=true};
+$('aSave').onclick=saveAsset; $('aDel').onclick=delAsset;
+['aName','aAmt','aPay'].forEach(id=>$(id).onkeydown=e=>{if(e.key==='Enter')saveAsset()});
+$('pinBtn').onclick=()=>{ if(pinOn()) $('pscrim').hidden=false; else openPin('set'); };
+$('pClose').onclick=()=>$('pscrim').hidden=true; $('pscrim').onclick=e=>{if(e.target===$('pscrim'))$('pscrim').hidden=true};
+$('pChange').onclick=()=>{$('pscrim').hidden=true;openPin('change')}; $('pOff').onclick=()=>{$('pscrim').hidden=true;openPin('off')};
+$('lPad').onclick=e=>{const b=e.target.closest('button');if(b)pinKey(b.dataset.k||b.textContent)};
 document.addEventListener('keydown',e=>{
+  if(pinMode){ e.preventDefault(); if(/^\d$/.test(e.key))pinKey(e.key); else if(e.key==='Backspace')pinKey('back'); else if(e.key==='Escape')pinKey('cancel'); return; }
+}, true);
+document.addEventListener('keydown',e=>{
+  if(pinMode) return;
   if($('scrim').hidden||!$('cscrim').hidden) return;
   if(e.target.tagName==='INPUT') { if(e.key==='Enter') submit(); return; }
   if(/^\d$/.test(e.key)) key(e.key); else if(e.key===','||e.key==='.') key('dot');
   else if(e.key==='Backspace') key('back'); else if(e.key==='Enter') submit(); else if(e.key==='Escape') closeSheet();
 });
 render();
+drawPinBtn();
+if(pinOn()){ document.documentElement.classList.add('locked'); openPin('unlock'); } else document.documentElement.classList.remove('locked');
 $('syncNote').textContent='Учёт расходов и доходов';
 $('exportBtn').onclick=exportData;
 $('importFile').onchange=e=>{const f=e.target.files[0]; if(f) importData(f); e.target.value=''};
