@@ -33,7 +33,7 @@ jobs:
       - name: Показать ошибку
         if: failure()
         run: |
-          grep -nE "error:|What went wrong|FAILED|Exception|Could not|not found|> " build.log | head -40 | while IFS= read -r l; do echo "::error::${l:0:900}"; done
+          grep -nE "error:|What went wrong|Duplicate class|Could not|not found|\.java:[0-9]+" build.log | grep -v "^\s*at " | head -40 | while IFS= read -r l; do echo "::error::${l:0:900}"; done
           tail -15 build.log | while IFS= read -r l; do echo "::warning::${l:0:900}"; done
 
       - name: Переименовать
