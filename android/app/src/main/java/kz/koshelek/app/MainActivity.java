@@ -169,6 +169,28 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
+        // Reports: send text to WhatsApp / Telegram (first installed package from the list) or the system share menu.
+        @JavascriptInterface
+        public void shareText(String text, String pkgs) {
+            runOnUiThread(() -> {
+                Intent send = new Intent(Intent.ACTION_SEND);
+                send.setType("text/plain");
+                send.putExtra(Intent.EXTRA_TEXT, text);
+                if (pkgs != null) {
+                    for (String p : pkgs.split(",")) {
+                        if (p.trim().isEmpty()) continue;
+                        Intent t = new Intent(send).setPackage(p.trim());
+                        try { startActivity(t); return; } catch (Exception ignored) { }
+                    }
+                }
+                try {
+                    startActivity(Intent.createChooser(send, "Отправить отчёт"));
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "Не нашлось приложения для отправки", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         // Backups and Excel files: WebView can't download blob: links, so the page hands the text here.
         @JavascriptInterface
         public boolean saveFile(String name, String mime, String content) {

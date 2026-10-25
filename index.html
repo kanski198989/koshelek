@@ -291,6 +291,15 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 @media (max-width:360px){.sstats{grid-template-columns:repeat(2,1fr)}}
 .xtext{font:12px/1.4 ui-monospace,monospace;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;height:150px;resize:vertical;word-break:break-all}
 #xscrim{z-index:26}
+/* share a report */
+#shscrim{z-index:26}
+.gshare{padding:10px 12px;display:flex;justify-content:flex-end;border-top:1px solid var(--line)}
+.shbtn{color:var(--accent);font-weight:600;border-color:var(--accent);align-self:flex-start}
+.shtext{font:13px/1.45 var(--body,inherit);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;height:220px;resize:vertical;white-space:pre-wrap}
+.shbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shb{height:50px;border-radius:14px;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface);color:var(--fg)}
+.shb.wa{background:#25d366;color:#fff} .shb.tg{background:#2aabee;color:#fff}
+.shb:active{transform:scale(.98)}
 /* amount entry: keep the sum visible */
 #scrim .amount{position:sticky;top:-14px;z-index:3;box-shadow:0 0 0 10px var(--bg)}
 #scrim .cats{max-height:min(34vh,300px);overflow-y:auto;overscroll-behavior:contain;padding:2px 2px 18px;border-radius:12px;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)}
@@ -537,6 +546,19 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
     <button class="vsave" id="xGo"></button>
   </div>
 </div>
+<div class="scrim" id="shscrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle">
+    <div class="top"><b id="shTitle" style="font-size:17px">Отправить отчёт</b><button class="x" id="shClose" aria-label="Закрыть">×</button></div>
+    <p class="note" style="text-align:left;margin:0">Так отчёт увидит получатель. Текст можно поправить перед отправкой.</p>
+    <textarea id="shText" class="shtext" spellcheck="false" aria-label="Текст отчёта"></textarea>
+    <div class="shbtns">
+      <button class="shb wa" id="shWa">WhatsApp</button>
+      <button class="shb tg" id="shTg">Telegram</button>
+      <button class="shb" id="shMore" hidden>📤 Другие</button>
+      <button class="shb" id="shCopy">📋 Скопировать</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -649,6 +671,10 @@ function render(){
             row.querySelector('.del').onclick=()=>{ if(conf){remove(t.id)} else {pendingDel=t.id;render()} };
             it.appendChild(row);
           });
+          const sb=document.createElement('div'); sb.className='gshare';
+          sb.innerHTML='<button class="ghost shbtn">📤 Отправить отчёт</button>';
+          sb.querySelector('button').onclick=()=>openShare(repOne(c,type,list.filter(t=>t.cat===k&&t.type===type),total,mainPeriod()));
+          it.appendChild(sb);
           g.appendChild(it);
         }
         L.appendChild(g);
@@ -1159,6 +1185,7 @@ function drawBoth(box){
         return Object.keys(by).sort((a,b)=>by[b].s-by[a].s).map(c=>`<div><span>${ty==='inc'?'Доход':'Расход'} · ${esc(catOf(c,ty).name)} (${by[c].n})</span><b class="num ${ty==='exp'?'amt-exp':'amt-inc'}">${esc(money(by[c].s))}</b></div>`).join(''); }).join('');
       const how=G.byCat?`Считаются все записи категорий «${G.name}» в расходах и доходах`:`Считаются записи, где в комментарии или категории есть «${G.name}»`;
       it.insertAdjacentHTML('beforeend',`<div class="sdet">
+        <button class="ghost shbtn" data-sh>📤 Отправить отчёт</button>
         <div class="sstats"><div><span>Доход</span><b class="amt-inc">${esc(money(G.inc))}</b></div><div><span>Расход</span><b class="amt-exp">${esc(money(G.exp))}</b></div><div><span>Итог</span><b class="${net<0?'amt-exp':'amt-inc'}">${esc(money(net,true))}</b></div>
         <div><span>Остаётся с дохода</span><b>${pct(net/G.inc)}</b></div><div><span>Записей</span><b>${n}</b></div><div><span>С</span><b>${esc(fmtD(G.list[0].date))}</b></div></div>
         ${bothChart(G.list)}
@@ -1166,6 +1193,7 @@ function drawBoth(box){
         <div><div class="lbl" style="margin-bottom:4px">Из чего сложилось</div><p class="note" style="text-align:left;margin:0 0 4px">${esc(how)}, ${sameScope==='year'?'за '+rYear+' год':'за всё время'}.</p><div class="slast">${brk}</div></div>
         <div><div class="lbl" style="margin-bottom:4px">Все записи (${n})</div><div class="slast sall">${all}</div></div>
       </div>`);
+      it.querySelector('[data-sh]').onclick=()=>openShare(repBoth(G,repPeriod(G.list)));
     }
     it.querySelector('.srow').onclick=()=>{sameOpen=open?null:G.k;drawSame();};
     box.appendChild(it);
@@ -1180,6 +1208,7 @@ function drawOneCat(box,G,ty,total){
     const amts=L.map(t=>t.amount);
     const all=L.slice().reverse().map(t=>`<div><span>${esc(fmtD(t.date))}${t.note?' · '+esc(t.note):''}</span><b class="num ${ty==='exp'?'amt-exp':'amt-inc'}">${esc(money(t.amount))}</b></div>`).join('');
     it.insertAdjacentHTML('beforeend',`<div class="sdet">
+      <button class="ghost shbtn" data-sh>📤 Отправить отчёт</button>
       <div class="sstats"><div><span>Всего</span><b>${esc(money(sum))}</b></div><div><span>Записей</span><b>${n}</b></div><div><span>В среднем</span><b>${esc(money(Math.round(avg)))}</b></div>
       <div><span>Меньше всего</span><b>${esc(money(Math.min(...amts)))}</b></div><div><span>Больше всего</span><b>${esc(money(Math.max(...amts)))}</b></div><div><span>С</span><b>${esc(fmtD(L[0].date))}</b></div></div>
       ${sameChart(L,ty)}
@@ -1187,6 +1216,7 @@ function drawOneCat(box,G,ty,total){
       <p class="note" style="text-align:left;margin:0">Все записи категории «${esc(G.name)}» (${ty==='exp'?'расходы':'доходы'}), ${sameScope==='year'?'за '+rYear+' год':'за всё время'}.</p>
       <div><div class="lbl" style="margin-bottom:4px">Все записи (${n})</div><div class="slast sall">${all}</div></div>
     </div>`);
+    it.querySelector('[data-sh]').onclick=()=>openShare(repOne({icon:G.icon,name:G.name},ty,L,total,repPeriod(L)));
   }
   it.querySelector('.srow').onclick=()=>{sameOpen=open?null:G.k;drawSame();};
   box.appendChild(it);
@@ -1207,12 +1237,14 @@ function drawSame(){
       const amts=G.list.map(t=>t.amount), mn=Math.min(...amts), mx=Math.max(...amts);
       const last=G.list.slice(-5).reverse().map(t=>`<div><span>${esc(fmtD(t.date))}</span><b class="num">${esc(money(t.amount))}</b></div>`).join('');
       it.insertAdjacentHTML('beforeend',`<div class="sdet">
+        <button class="ghost shbtn" data-sh>📤 Отправить отчёт</button>
         <div class="sstats"><div><span>Всего</span><b>${esc(money(G.sum))}</b></div><div><span>Сколько раз</span><b>${n}</b></div><div><span>В среднем</span><b>${esc(money(Math.round(avg)))}</b></div>
         <div><span>Меньше всего</span><b>${esc(money(mn))}</b></div><div><span>Больше всего</span><b>${esc(money(mx))}</b></div><div><span>Первый раз</span><b>${esc(fmtD(G.list[0].date))}</b></div></div>
         ${sameChart(G.list)}
         <div class="alist">${sameInsights(G,total)}</div>
         <div><div class="lbl" style="margin-bottom:4px">Последние записи</div><div class="slast">${last}</div></div>
       </div>`);
+      const ty=sameType; it.querySelector('[data-sh]').onclick=()=>openShare(repOne({icon:c.icon,name:'«'+G.name+'»'},ty,G.list,0,repPeriod(G.list)));
     }
     it.querySelector('.srow').onclick=()=>{sameOpen=open?null:G.k;drawSame();};
     box.appendChild(it);
@@ -1227,6 +1259,72 @@ function exportCSV(all){
   rows.forEach(t=>{const d=t.date.split('-');lines.push([d[2]+'.'+d[1]+'.'+d[0],t.type==='exp'?'Расход':'Доход',catOf(t.cat,t.type).name,String(t.type==='exp'?-t.amount:t.amount).replace('.',','),cur,t.note||''].map((v,i)=>i===3?v:q(v)).join(';'))});
   const ok=saveText('koshelek-'+(all?'vse':rYear)+'.csv','text/csv','﻿'+lines.join('\r\n'));
   toast(ok===false?'Не удалось сохранить файл':'Файл сохранён в «Загрузки»: записей '+rows.length);
+}
+
+/* ---------- share a report (WhatsApp, Telegram, …) ---------- */
+const dd=d=>{const p=d.split('-');return p[2]+'.'+p[1]+'.'+p[0]};
+const capF=x=>x?x[0].toUpperCase()+x.slice(1):x;
+const SH_MAX=150;
+function mainPeriod(){ const r=range(); return period==='day'?dd(r.a):period==='week'?dd(r.a)+' – '+dd(r.b):period==='all'?'всё время':capF(r.label); }
+function repPeriod(list){
+  if(sameScope==='year') return rYear+' год';
+  const f=list.reduce((m,t)=>t.date<m?t.date:m,'9999');
+  return 'всё время'+(f<'9999'?' (с '+dd(f)+')':'');
+}
+function shRows(list,signed){
+  const L=list.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created);
+  const r=L.slice(0,SH_MAX).map(t=>'• '+dd(t.date)+' — '+(t.note&&t.note.trim()?t.note.trim().replace(/\s+/g,' ')+' — ':'')+money(signed&&t.type==='exp'?-t.amount:t.amount,signed));
+  if(L.length>SH_MAX) r.push('… и ещё '+(L.length-SH_MAX)+' '+plural(L.length-SH_MAX,'запись','записи','записей'));
+  return r.join('\n');
+}
+const shHead=(icon,name,what,per)=>`*${icon?icon+' ':''}${name}* — ${what}\nПериод: ${per}`;
+const shFoot=()=>`\n\n_Кошелёк · отчёт от ${dd(today())}_`;
+function repOne(c,ty,list,total,per){
+  const n=list.length, sum=list.reduce((a,t)=>a+t.amount,0);
+  const out=[shHead(c.icon,c.name,ty==='exp'?'расходы':'доходы',per),'','Итого: *'+money(sum)+'*',
+    'Записей: '+n+(n>1?' · в среднем '+money(Math.round(sum/n)):'')];
+  if(total>0&&total>sum) out.push('Доля от всех '+(ty==='exp'?'расходов':'доходов')+': '+pct(sum/total));
+  if(n) out.push('','Записи:',shRows(list,false));
+  return out.join('\n')+shFoot();
+}
+function repBoth(G,per){
+  const net=G.inc-G.exp;
+  const out=[shHead(G.icon,G.name,'доходы и расходы',per),'','Доход: '+money(G.inc,true),'Расход: '+money(-G.exp,true),
+    'Итог: *'+money(net,true)+'*'+(G.inc>0&&net>0?' (остаётся '+pct(net/G.inc)+' с дохода)':'')];
+  const bm={}; G.list.forEach(t=>{const k=t.date.slice(0,7);bm[k]=bm[k]||{i:0,e:0};bm[k][t.type==='inc'?'i':'e']+=t.amount});
+  const ms=Object.keys(bm).sort();
+  if(ms.length>=2){ out.push('','По месяцам:'); ms.forEach(k=>out.push('• '+capF(MON[+k.slice(5)-1])+' '+k.slice(0,4)+': доход '+nf.format(bm[k].i)+', расход '+nf.format(bm[k].e)+' → '+money(bm[k].i-bm[k].e,true))); }
+  out.push('','Записи:',shRows(G.list,true));
+  return out.join('\n')+shFoot();
+}
+const canNativeShare=()=>!!(NATIVE&&NATIVE.shareText);
+function openShare(text){
+  $('shText').value=text;
+  $('shMore').hidden=!(canNativeShare()||navigator.share);
+  $('shscrim').hidden=false;
+}
+function closeShare(){ $('shscrim').hidden=true; }
+function shareVia(app){
+  const text=$('shText').value.trim(); if(!text){ toast('Текст отчёта пустой'); return; }
+  const e=encodeURIComponent(text);
+  if(canNativeShare()){
+    try{ NATIVE.shareText(text,app==='wa'?'com.whatsapp,com.whatsapp.w4b':app==='tg'?'org.telegram.messenger,org.telegram.messenger.web,org.thunderdog.challegram':''); closeShare(); return; }catch(err){}
+  }
+  if(app==='more'){
+    if(navigator.share){ navigator.share({text}).then(closeShare).catch(()=>{}); }
+    return;
+  }
+  // without the native share: open the messenger by link
+  const url=app==='wa'?(NATIVE?'whatsapp://send?text='+e:'https://wa.me/?text='+e)
+                      :(NATIVE?'tg://msg?text='+e:'https://t.me/share/url?url=%20&text='+e);
+  if(NATIVE) location.href=url; else window.open(url,'_blank');
+  toast('Если '+(app==='wa'?'WhatsApp':'Telegram')+' не открылся — нажмите «Скопировать» и вставьте текст в чат');
+}
+async function shareCopy(){
+  const t=$('shText'); let ok=false;
+  try{ await navigator.clipboard.writeText(t.value); ok=true; }catch(e){}
+  if(!ok){ try{ t.focus(); t.select(); t.setSelectionRange(0,t.value.length); ok=document.execCommand('copy'); }catch(e){} }
+  toast(ok?'Отчёт скопирован — вставьте его в любой чат':'Выделите текст, подержав на нём палец, и нажмите «Копировать»');
 }
 
 /* ---------- notes ---------- */
@@ -1600,6 +1698,8 @@ $('syncNote').textContent='Учёт расходов и доходов';
 $('exportBtn').onclick=exportData;
 $('copyBtn').onclick=()=>openTransfer('copy'); $('pasteBtn').onclick=()=>openTransfer('paste');
 $('xGo').onclick=transferGo; $('xClose').onclick=()=>$('xscrim').hidden=true; $('xscrim').onclick=e=>{if(e.target===$('xscrim'))$('xscrim').hidden=true};
+$('shWa').onclick=()=>shareVia('wa'); $('shTg').onclick=()=>shareVia('tg'); $('shMore').onclick=()=>shareVia('more'); $('shCopy').onclick=shareCopy;
+$('shClose').onclick=closeShare; $('shscrim').onclick=e=>{if(e.target===$('shscrim'))closeShare()};
 $('importFile').onchange=e=>{const f=e.target.files[0]; if(f) importData(f); e.target.value=''};
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('install').hidden=false});
