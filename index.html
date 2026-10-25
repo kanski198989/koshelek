@@ -291,6 +291,9 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 @media (max-width:360px){.sstats{grid-template-columns:repeat(2,1fr)}}
 .xtext{font:12px/1.4 ui-monospace,monospace;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;height:150px;resize:vertical;word-break:break-all}
 #xscrim{z-index:26}
+/* amount entry: keep the sum visible */
+#scrim .amount{position:sticky;top:-14px;z-index:3;box-shadow:0 0 0 10px var(--bg)}
+#scrim .cats{max-height:min(34vh,300px);overflow-y:auto;overscroll-behavior:contain;padding:2px 2px 18px;border-radius:12px;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)}
 /* lock */
 .lock{position:fixed;inset:0;z-index:50;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px 16px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto}
 .lock.show,.locked .lock{display:flex}
