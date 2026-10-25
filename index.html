@@ -279,7 +279,8 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .sstats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
 .sstats div{background:var(--surface);border-radius:10px;padding:8px 9px;min-width:0}
 .sstats span{display:block;font-size:11px;color:var(--muted)}
-.sstats b{display:block;font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.sstats b{display:block;font-size:clamp(11px,3.4vw,14px);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.slast b{white-space:nowrap}
 .slast{display:flex;flex-direction:column}
 .slast div{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
 .slast div:last-child{border-bottom:0}
@@ -376,10 +377,11 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
     <div id="rTop" class="rtop"></div>
   </section>
   <section class="rcard">
-    <div class="rhead"><h2>Одинаковые записи</h2><div class="seg" id="sameType"><button class="e" data-t="exp" aria-pressed="true">Расходы</button><button class="i" data-t="inc" aria-pressed="false">Доходы</button></div></div>
+    <h2>По названиям</h2>
+    <div class="seg sscope" id="sameType"><button class="s" data-t="both" aria-pressed="true">Доход и расход</button><button class="e" data-t="exp" aria-pressed="false">Расходы</button><button class="i" data-t="inc" aria-pressed="false">Доходы</button></div>
     <div class="seg sscope" id="sameScope"><button class="s" data-s="year" aria-pressed="true">За этот год</button><button class="s" data-s="all" aria-pressed="false">За всё время</button></div>
     <div id="rSame" class="slist"></div>
-    <p class="note" style="text-align:left;margin:0">Записи с одинаковым комментарием (например «Такси» или «Бензин») собираются вместе. Нажмите на строку — откроется подробный анализ.</p>
+    <p class="note" style="text-align:left;margin:0">«Доход и расход» — названия, которые есть и в расходах, и в доходах (категория или комментарий, например «Урихтау»): сколько пришло, сколько ушло и что осталось. «Расходы» и «Доходы» — повторяющиеся записи с одинаковым комментарием. Нажмите на строку — откроется подробный анализ.</p>
   </section>
   <section class="rcard">
     <h2>Выгрузка в Excel</h2>
@@ -643,11 +645,16 @@ function persistLocal(){store.set('tx',tx)}
 function save(t){ tx=tx.filter(x=>x.id!==t.id).concat(t); persistLocal(); render(); }
 function remove(id){ tx=tx.filter(x=>x.id!==id); pendingDel=null; persistLocal(); render(); toast('Запись удалена'); }
 /* ---------- backup ---------- */
+const NATIVE=window.KoshelekNative||null;
+function saveText(name,mime,text){
+  if(NATIVE&&NATIVE.saveFile){ try{ return NATIVE.saveFile(name,mime,text); }catch(e){ return false; } }
+  const blob=new Blob([text],{type:mime});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); return true;
+}
 function exportData(){
-  const blob=new Blob([JSON.stringify({app:'koshelek',version:3,exported:new Date().toISOString(),currency:cur,catsExp:EXP,catsInc:INC,tx,notes,assets,nwHist},null,1)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='koshelek-'+today()+'.json';
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-  toast('Резервная копия сохранена в «Загрузки»');
+  const ok=saveText('koshelek-'+today()+'.json','application/json',JSON.stringify({app:'koshelek',version:3,exported:new Date().toISOString(),currency:cur,catsExp:EXP,catsInc:INC,tx,notes,assets,nwHist},null,1));
+  toast(ok===false?'Не удалось сохранить файл':'Резервная копия сохранена в «Загрузки»');
 }
 function importData(file){
   const r=new FileReader();
@@ -953,7 +960,7 @@ function drawReport(){
   drawSame();
 }
 /* ---------- same-name analysis ---------- */
-let sameType='exp', sameScope='year', sameOpen=null, sameAll=false;
+let sameType='both', sameScope='year', sameOpen=null, sameAll=false;
 const normName=n=>String(n||'').toLowerCase().replace(/ё/g,'е').replace(/[.,!?;:"«»()]+/g,' ').replace(/\s+/g,' ').trim();
 const dayN=d=>Math.round(new Date(d+'T12:00')/864e5);
 const fmtD=d=>{const p=d.split('-');return (+p[2])+' '+MONg[+p[1]-1]+(+p[0]!==new Date().getFullYear()?' '+p[0]:'')};
@@ -1031,10 +1038,93 @@ function sameInsights(G,total){
   if(cs.length>1) row('y','Записано в разных категориях',cs.length+' кат.','Одна и та же запись лежит в категориях: '+cs.map(c=>catOf(c,sameType).name).join(', ')+'. Чтобы отчёты были точнее, выбирайте одну.');
   return an.join('');
 }
+/* both: same name in incomes and expenses (category name or comment) */
+const GENERIC_CATS=['other','other_in'];
+function bothGroups(){
+  const src=tx.filter(t=>sameScope==='all'||t.date.startsWith(rYear+'-'));
+  const g={};
+  const put=(k,t,orig)=>{ const G=g[k]=g[k]||{k,list:[],ids:new Set(),spell:{}}; if(G.ids.has(t.id)) return; G.ids.add(t.id); G.list.push(t); if(orig) G.spell[orig]=(G.spell[orig]||0)+1; };
+  src.forEach(t=>{
+    const n=normName(t.note); if(n) put(n,t,t.note.trim().replace(/\s+/g,' '));
+    if(!GENERIC_CATS.includes(t.cat)){ const c=catOf(t.cat,t.type), cn=normName(c.name); if(cn) put(cn,t,c.name); }
+  });
+  // names present in both incomes and expenses
+  const cand=Object.values(g).filter(G=>G.list.some(t=>t.type==='inc')&&G.list.some(t=>t.type==='exp')).map(G=>G.k);
+  // a comment that contains the name as words ("Урихтау бензин") belongs to it too
+  src.forEach(t=>{ const n=' '+normName(t.note)+' '; if(n.length<3) return;
+    cand.forEach(k=>{ if(n.includes(' '+k+' ')) put(k,t); }); });
+  return cand.map(k=>{ const G=g[k];
+    G.list.sort((a,b)=>a.date.localeCompare(b.date)||a.created-b.created);
+    G.inc=G.list.filter(t=>t.type==='inc').reduce((a,t)=>a+t.amount,0);
+    G.exp=G.list.filter(t=>t.type==='exp').reduce((a,t)=>a+t.amount,0);
+    G.name=Object.keys(G.spell).sort((a,b)=>G.spell[b]-G.spell[a]||a.length-b.length)[0]||k;
+    G.name=G.name[0].toUpperCase()+G.name.slice(1);
+    return G;
+  }).sort((a,b)=>(b.inc+b.exp)-(a.inc+a.exp));
+}
+function bothChart(list){
+  const {cols}=sameMonths([]);
+  const vi=cols.map(c=>list.filter(t=>t.type==='inc'&&t.date.startsWith(c)).reduce((a,t)=>a+t.amount,0));
+  const ve=cols.map(c=>list.filter(t=>t.type==='exp'&&t.date.startsWith(c)).reduce((a,t)=>a+t.amount,0));
+  const max=Math.max(...vi,...ve,0); if(!max) return '';
+  const W=320,H=110,B=16,T=6,cw=W/12,bw=Math.min(9,cw*.34), y=v=>(H-B-T)*v/max;
+  let g='';
+  cols.forEach((c,i)=>{const cx=cw*i+cw/2, m=MON[+c.slice(5)-1];
+    if(vi[i]) g+=`<rect x="${cx-bw-1}" y="${H-B-Math.max(y(vi[i]),2)}" width="${bw}" height="${Math.max(y(vi[i]),2)}" rx="2" fill="var(--inc)"><title>${m}: доход ${money(vi[i])}</title></rect>`;
+    if(ve[i]) g+=`<rect x="${cx+1}" y="${H-B-Math.max(y(ve[i]),2)}" width="${bw}" height="${Math.max(y(ve[i]),2)}" rx="2" fill="var(--exp)"><title>${m}: расход ${money(ve[i])}</title></rect>`;
+    g+=`<text x="${cx}" y="${H-4}" text-anchor="middle">${MONs[+c.slice(5)-1]}</text>`;});
+  return `<div class="chartbox"><div class="legend" style="margin-bottom:4px"><span><i style="background:var(--inc)"></i>Доход</span><span><i style="background:var(--exp)"></i>Расход</span></div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Доход и расход по месяцам">${g}</svg></div>`;
+}
+function bothInsights(G){
+  const an=[]; const row=(c,t,v,p)=>an.push(`<div class="an"><span class="dot ${c}"></span><div><b>${esc(t)}<span>${esc(v)}</span></b><p>${esc(p)}</p></div></div>`);
+  const net=G.inc-G.exp, m=net/G.inc;
+  if(net>0) row(m>=.2?'g':'y','В плюсе',money(net,true),`Пришло ${money(G.inc)}, ушло ${money(G.exp)}. С каждых 100 ${cur} дохода остаётся ${Math.round(m*100)} ${cur}.`+(m<.2?' Это немного — стоит присмотреться к расходам.':''));
+  else if(net<0) row('r','В минусе',money(net,true),`Расходов больше, чем доходов: пришло ${money(G.inc)}, ушло ${money(G.exp)}. Не хватает ${money(-net)}.`);
+  else row('y','В ноль','0',`Доходы и расходы равны: по ${money(G.inc)}.`);
+  // expense structure
+  const bc={}; G.list.filter(t=>t.type==='exp').forEach(t=>{bc[t.cat]=(bc[t.cat]||0)+t.amount});
+  const cs=Object.keys(bc).sort((a,b)=>bc[b]-bc[a]);
+  if(cs.length>1) row('n','На что ушли расходы',cs.length+' кат.',cs.slice(0,4).map(c=>catOf(c,'exp').name+' — '+pct(bc[c]/G.exp)).join(', ')+(cs.length>4?' и др.':'')+'.');
+  // by months
+  const bm={}; G.list.forEach(t=>{const k=t.date.slice(0,7);bm[k]=bm[k]||{i:0,e:0};bm[k][t.type==='inc'?'i':'e']+=t.amount});
+  const ms=Object.keys(bm).sort(), loss=ms.filter(k=>bm[k].e>bm[k].i);
+  if(ms.length>=2){
+    const best=ms.slice().sort((a,b)=>(bm[b].i-bm[b].e)-(bm[a].i-bm[a].e))[0], nm=k=>MON[+k.slice(5)-1]+(k.slice(0,4)!==String(new Date().getFullYear())?' '+k.slice(0,4):'');
+    row(loss.length?'y':'g','По месяцам',loss.length?loss.length+' в минусе':'все в плюсе',
+      (loss.length?'В минусе: '+loss.slice(-4).map(nm).join(', ')+'. ':'')+`Лучший месяц — ${nm(best)}: ${money(bm[best].i-bm[best].e,true)}.`);
+  }
+  const cm=today().slice(0,7);
+  if(bm[cm]) row(bm[cm].i>=bm[cm].e?'g':'y','Этот месяц',money(bm[cm].i-bm[cm].e,true),`Доход ${money(bm[cm].i)}, расход ${money(bm[cm].e)}.`);
+  return an.join('');
+}
+function drawBoth(box){
+  const out=bothGroups();
+  if(!out.length){ box.innerHTML=`<p class="note" style="text-align:left;margin:0">Пока нет названий, которые есть и в расходах, и в доходах${sameScope==='year'?' за '+rYear+' год':''}. Например, для объекта «Урихтау» пишите «Урихтау» в комментарии и к расходам, и к доходам — или создайте категорию «Урихтау» и там, и там.</p>`; return; }
+  const shown=sameAll?out:out.slice(0,12); box.innerHTML='';
+  shown.forEach(G=>{
+    const net=G.inc-G.exp, open=sameOpen===G.k, n=G.list.length;
+    const it=document.createElement('div'); it.className='sitem';
+    it.innerHTML=`<button class="srow" style="--c:${net>=0?'var(--inc)':'var(--exp)'}" aria-expanded="${open}"><span class="ic" style="color:#fff;font-weight:700">${net>=0?'＋':'−'}</span><b>${esc(G.name)}<small>доход ${esc(money(G.inc))} · расход ${esc(money(G.exp))}</small></b><span class="v num ${net<0?'amt-exp':'amt-inc'}">${esc(money(net,true))}<small>итог</small></span></button>`;
+    if(open){
+      const last=G.list.slice(-6).reverse().map(t=>`<div><span>${esc(fmtD(t.date))} · ${esc(t.note||catOf(t.cat,t.type).name)}</span><b class="num ${t.type==='exp'?'amt-exp':'amt-inc'}">${esc(money(t.type==='exp'?-t.amount:t.amount,true))}</b></div>`).join('');
+      it.insertAdjacentHTML('beforeend',`<div class="sdet">
+        <div class="sstats"><div><span>Доход</span><b class="amt-inc">${esc(money(G.inc))}</b></div><div><span>Расход</span><b class="amt-exp">${esc(money(G.exp))}</b></div><div><span>Итог</span><b class="${net<0?'amt-exp':'amt-inc'}">${esc(money(net,true))}</b></div>
+        <div><span>Остаётся с дохода</span><b>${pct(net/G.inc)}</b></div><div><span>Записей</span><b>${n}</b></div><div><span>С</span><b>${esc(fmtD(G.list[0].date))}</b></div></div>
+        ${bothChart(G.list)}
+        <div class="alist">${bothInsights(G)}</div>
+        <div><div class="lbl" style="margin-bottom:4px">Последние записи</div><div class="slast">${last}</div></div>
+      </div>`);
+    }
+    it.querySelector('.srow').onclick=()=>{sameOpen=open?null:G.k;drawSame();};
+    box.appendChild(it);
+  });
+  if(out.length>12){ const b=document.createElement('button'); b.className='ghost smore'; b.textContent=sameAll?'Свернуть':'Показать все ('+out.length+')'; b.onclick=()=>{sameAll=!sameAll;drawSame()}; box.appendChild(b); }
+}
 function drawSame(){
   document.querySelectorAll('#sameType button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===sameType));
   document.querySelectorAll('#sameScope button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.s===sameScope); if(b.dataset.s==='year') b.textContent='За '+rYear+' год';});
-  const box=$('rSame'); const {out,total}=sameGroups();
+  const box=$('rSame'); if(sameType==='both') return drawBoth(box);
+  const {out,total}=sameGroups();
   if(!out.length){ box.innerHTML=`<p class="note" style="text-align:left;margin:0">Пока нет повторяющихся ${sameType==='exp'?'расходов':'доходов'}${sameScope==='year'?' за '+rYear+' год':''}. Пишите в комментарии одинаковое название — например «Такси», «Бензин», «Зарплата» — и здесь появится анализ.</p>`; return; }
   const shown=sameAll?out:out.slice(0,12);
   box.innerHTML='';
@@ -1064,10 +1154,8 @@ function exportCSV(all){
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
   const lines=[['Дата','Тип','Категория','Сумма','Валюта','Комментарий'].map(q).join(';')];
   rows.forEach(t=>{const d=t.date.split('-');lines.push([d[2]+'.'+d[1]+'.'+d[0],t.type==='exp'?'Расход':'Доход',catOf(t.cat,t.type).name,String(t.type==='exp'?-t.amount:t.amount).replace('.',','),cur,t.note||''].map((v,i)=>i===3?v:q(v)).join(';'))});
-  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='koshelek-'+(all?'vse':rYear)+'.csv';
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-  toast('Файл сохранён в «Загрузки»: записей '+rows.length);
+  const ok=saveText('koshelek-'+(all?'vse':rYear)+'.csv','text/csv','﻿'+lines.join('\r\n'));
+  toast(ok===false?'Не удалось сохранить файл':'Файл сохранён в «Загрузки»: записей '+rows.length);
 }
 
 /* ---------- notes ---------- */
@@ -1290,14 +1378,19 @@ const pinOn=()=>{const p=store.get('pin',null);return !!(p&&p.hash)};
 const b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const unb64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
 const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
-const bioOn=()=>{const b=store.get('bio',null);return !!(b&&b.id&&b.host===location.hostname)};
+const bioOn=()=>{const b=store.get('bio',null);return !!b&&(NATIVE?!!b.native:!!(b.id&&b.host===location.hostname))};
+let nativeWait=null;
+window.__bioDone=(ok,msg)=>{ const w=nativeWait; nativeWait=null; if(w) w({ok:!!ok,msg:msg||''}); };
+function nativeAuth(){ return new Promise(res=>{ nativeWait=res; try{ NATIVE.bioAuth(); }catch(e){ nativeWait=null; res({ok:false,msg:'Ошибка'}); } }); }
 let bioAvail=null, bioBusy=false;
 async function bioCheck(){
   if(bioAvail!==null) return bioAvail;
+  if(NATIVE&&NATIVE.bioAvailable){ try{ bioAvail=!!NATIVE.bioAvailable(); }catch(e){ bioAvail=false; } return bioAvail; }
   try{ bioAvail=!!(window.PublicKeyCredential&&window.isSecureContext&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); }catch(e){ bioAvail=false; }
   return bioAvail;
 }
 async function bioEnable(){
+  if(NATIVE){ const r=await nativeAuth(); if(r.ok){ store.set('bio',{native:true}); toast('Вход по отпечатку / лицу включён'); } else if(r.msg) toast(r.msg); drawBio(); drawPinBtn(); return; }
   try{
     const c=await navigator.credentials.create({publicKey:{rp:{name:'Кошелёк',id:location.hostname},
       user:{id:rnd(16),name:'koshelek',displayName:'Кошелёк'},challenge:rnd(32),
@@ -1313,6 +1406,7 @@ function bioDisable(){ try{localStorage.removeItem('bio')}catch(e){} toast('Вх
 async function bioUnlock(){
   if(!bioOn()||bioBusy||pinMode!=='unlock') return;
   bioBusy=true;
+  if(NATIVE){ const r=await nativeAuth(); bioBusy=false; if(r.ok&&pinMode==='unlock'){ pinFails=0; closePin(); } else if(r.msg) $('lErr').textContent=r.msg; return; }
   try{
     const a=await navigator.credentials.get({publicKey:{challenge:rnd(32),rpId:location.hostname,
       allowCredentials:[{type:'public-key',id:unb64(store.get('bio').id),transports:['internal']}],userVerification:'required',timeout:60000}});
@@ -1321,11 +1415,12 @@ async function bioUnlock(){
   bioBusy=false;
 }
 async function drawBio(){
+  if(NATIVE) bioAvail=null;
   const ok=await bioCheck(), on=bioOn();
   $('pBio').hidden=!ok; $('pBio').textContent=on?'Выключить вход по отпечатку / лицу':'👆 Входить по отпечатку / лицу';
   $('pBio').className=on?'ghost':'vsave'; if(on) $('pBio').style.cssText='height:48px;font-size:15px'; else $('pBio').style.cssText='';
   $('pBioNote').hidden=false;
-  $('pBioNote').textContent=!ok?'Вход по отпечатку / лицу на этом телефоне или в этом браузере недоступен. Обычно он работает в Chrome и Samsung Internet; на Huawei без сервисов Google может не работать — тогда входите по паролю.'
+  $('pBioNote').textContent=!ok&&NATIVE?'Отпечаток недоступен: добавьте отпечаток пальца в настройках телефона (Безопасность → Отпечаток пальца) и откройте это окно снова.':!ok?'Вход по отпечатку / лицу на этом телефоне или в этом браузере недоступен. Обычно он работает в Chrome и Samsung Internet; на Huawei без сервисов Google может не работать — тогда входите по паролю.'
     :on?'Включён. Пароль остаётся запасным способом входа.':'Можно открывать приложение отпечатком пальца или лицом — так же, как разблокируете телефон. Пароль останется запасным.';
 }
 async function hashPin(p,salt){ const s=salt+':'+p;

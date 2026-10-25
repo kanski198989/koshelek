@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'kz.koshelek.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'kz.koshelek.app'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    // One fixed key, so a new APK installs over the old one and keeps the data.
+    signingConfigs {
+        own {
+            storeFile file('koshelek.keystore')
+            storePassword 'koshelek123'
+            keyAlias 'koshelek'
+            keyPassword 'koshelek123'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.own
+        }
+        debug {
+            signingConfig signingConfigs.own
+        }
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.biometric:biometric:1.1.0'
+}
