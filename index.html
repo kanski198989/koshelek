@@ -300,6 +300,9 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .shb{height:50px;border-radius:14px;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--surface);color:var(--fg)}
 .shb.wa{background:#25d366;color:#fff} .shb.tg{background:#2aabee;color:#fff}
 .shb:active{transform:scale(.98)}
+.shprev{max-height:min(48vh,520px);overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+.shprev img{display:block;width:100%;height:auto}
+.shmode{align-self:flex-start}
 /* amount entry: keep the sum visible */
 #scrim .amount{position:sticky;top:-14px;z-index:3;box-shadow:0 0 0 10px var(--bg)}
 #scrim .cats{max-height:min(34vh,300px);overflow-y:auto;overscroll-behavior:contain;padding:2px 2px 18px;border-radius:12px;-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)}
@@ -549,8 +552,10 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 <div class="scrim" id="shscrim" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="shTitle">
     <div class="top"><b id="shTitle" style="font-size:17px">Отправить отчёт</b><button class="x" id="shClose" aria-label="Закрыть">×</button></div>
-    <p class="note" style="text-align:left;margin:0">Так отчёт увидит получатель. Текст можно поправить перед отправкой.</p>
-    <textarea id="shText" class="shtext" spellcheck="false" aria-label="Текст отчёта"></textarea>
+    <div class="seg shmode" id="shMode"><button class="s" data-m="img" aria-pressed="true">Таблица</button><button class="s" data-m="txt" aria-pressed="false">Текст</button></div>
+    <p class="note" id="shNote" style="text-align:left;margin:0"></p>
+    <div class="shprev" id="shPrev"><img id="shImg" alt="Отчёт в виде таблицы"></div>
+    <textarea id="shText" class="shtext" spellcheck="false" aria-label="Текст отчёта" hidden></textarea>
     <div class="shbtns">
       <button class="shb wa" id="shWa">WhatsApp</button>
       <button class="shb tg" id="shTg">Telegram</button>
@@ -1271,54 +1276,155 @@ function repPeriod(list){
   const f=list.reduce((m,t)=>t.date<m?t.date:m,'9999');
   return 'всё время'+(f<'9999'?' (с '+dd(f)+')':'');
 }
-function shRows(list,signed){
-  const L=list.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.created-a.created);
-  const r=L.slice(0,SH_MAX).map(t=>'• '+dd(t.date)+' — '+(t.note&&t.note.trim()?t.note.trim().replace(/\s+/g,' ')+' — ':'')+money(signed&&t.type==='exp'?-t.amount:t.amount,signed));
-  if(L.length>SH_MAX) r.push('… и ещё '+(L.length-SH_MAX)+' '+plural(L.length-SH_MAX,'запись','записи','записей'));
-  return r.join('\n');
-}
-const shHead=(icon,name,what,per)=>`*${icon?icon+' ':''}${name}* — ${what}\nПериод: ${per}`;
 const shFoot=()=>`\n\n_Кошелёк · отчёт от ${dd(today())}_`;
+const shName=r=>(r.icon?r.icon+' ':'')+r.name;
+const nfS=v=>nf.format(Math.round(v*100)/100);
+// report data: one structure for both the table picture and the text
 function repOne(c,ty,list,total,per){
   const n=list.length, sum=list.reduce((a,t)=>a+t.amount,0);
-  const out=[shHead(c.icon,c.name,ty==='exp'?'расходы':'доходы',per),'','Итого: *'+money(sum)+'*',
-    'Записей: '+n+(n>1?' · в среднем '+money(Math.round(sum/n)):'')];
-  if(total>0&&total>sum) out.push('Доля от всех '+(ty==='exp'?'расходов':'доходов')+': '+pct(sum/total));
-  if(n) out.push('','Записи:',shRows(list,false));
-  return out.join('\n')+shFoot();
+  const sm=[['Итого',money(sum),ty],['Записей',String(n)]];
+  if(n>1) sm.push(['В среднем',money(Math.round(sum/n))]);
+  if(total>0&&total>sum) sm.push(['Доля от всех',pct(sum/total)]);
+  return {icon:c.icon,name:c.name,kind:ty==='exp'?'расходы':'доходы',ty,per,both:false,sum:sm,total:sum,
+    rows:list.slice().sort((a,b)=>a.date.localeCompare(b.date)||a.created-b.created)};
 }
 function repBoth(G,per){
   const net=G.inc-G.exp;
-  const out=[shHead(G.icon,G.name,'доходы и расходы',per),'','Доход: '+money(G.inc,true),'Расход: '+money(-G.exp,true),
-    'Итог: *'+money(net,true)+'*'+(G.inc>0&&net>0?' (остаётся '+pct(net/G.inc)+' с дохода)':'')];
+  const sm=[['Доход',money(G.inc),'inc'],['Расход',money(G.exp),'exp'],['Итог',money(net,true),net<0?'exp':'inc']];
+  if(G.inc>0&&net>0) sm.push(['Остаётся с дохода',pct(net/G.inc)]);
   const bm={}; G.list.forEach(t=>{const k=t.date.slice(0,7);bm[k]=bm[k]||{i:0,e:0};bm[k][t.type==='inc'?'i':'e']+=t.amount});
-  const ms=Object.keys(bm).sort();
-  if(ms.length>=2){ out.push('','По месяцам:'); ms.forEach(k=>out.push('• '+capF(MON[+k.slice(5)-1])+' '+k.slice(0,4)+': доход '+nf.format(bm[k].i)+', расход '+nf.format(bm[k].e)+' → '+money(bm[k].i-bm[k].e,true))); }
-  out.push('','Записи:',shRows(G.list,true));
+  const months=Object.keys(bm).sort().map(k=>({name:capF(MON[+k.slice(5)-1])+' '+k.slice(0,4),i:bm[k].i,e:bm[k].e}));
+  return {icon:G.icon,name:G.name,kind:'доходы и расходы',per,both:true,sum:sm,inc:G.inc,exp:G.exp,months:months.length>=2?months:[],
+    rows:G.list.slice().sort((a,b)=>a.date.localeCompare(b.date)||a.created-b.created)};
+}
+function repText(R){
+  const out=[`*${shName(R)}* — ${R.kind}`,'Период: '+R.per,''];
+  R.sum.forEach(([l,v],i)=>out.push(l+': '+(i===0||l==='Итог'?'*'+v+'*':v)));
+  if(R.months&&R.months.length){ out.push('','*По месяцам*'); R.months.forEach(m=>out.push(m.name+': доход '+nfS(m.i)+', расход '+nfS(m.e)+', итог '+money(m.i-m.e,true))); }
+  const L=R.rows.slice(-SH_MAX);
+  if(L.length){
+    out.push('','*Записи*'+(R.rows.length>SH_MAX?' (последние '+SH_MAX+' из '+R.rows.length+')':''));
+    const amt=t=>(R.both?(t.type==='exp'?'−':'+'):'')+nfS(t.amount);
+    const w=Math.max(...L.map(t=>amt(t).length));
+    out.push('```'); L.forEach((t,i)=>out.push(String(i+1).padStart(String(L.length).length)+'. '+dd(t.date).slice(0,6)+dd(t.date).slice(8)+' │ '+amt(t).padStart(w)+(t.note&&t.note.trim()?' │ '+t.note.trim().replace(/\s+/g,' '):''))); out.push('```');
+  }
   return out.join('\n')+shFoot();
 }
+/* the table as a picture */
+const IMG_MAX=300;
+function repImage(R){
+  const W=1080,P=44,F='Roboto,"Segoe UI",system-ui,sans-serif';
+  const K={fg:'#1d2620',mut:'#6b766f',line:'#e1e7e3',zeb:'#f5f8f6',acc:'#24584a',accS:'#e3efe9',exp:'#d9543f',inc:'#2f8a57',card:'#f1f5f2'};
+  const rows=R.rows.slice(-IMG_MAX), cut=R.rows.length-rows.length;
+  const fixed=R.both?[['№',64,'c'],['Дата',178,'l'],['Комментарий',0,'l'],['Доход',180,'r'],['Расход',180,'r']]
+                    :[['№',64,'c'],['Дата',178,'l'],['Комментарий',0,'l'],['Сумма, '+cur,230,'r']];
+  fixed[2][1]=W-2*P-fixed.reduce((a,c)=>a+c[1],0);
+  const m=document.createElement('canvas').getContext('2d');
+  const wrap=(t,w,font,max)=>{ m.font=font; const words=String(t||'').trim().split(/\s+/).filter(Boolean); const ls=[]; let cur2='';
+    words.forEach(wd=>{ const tryS=cur2?cur2+' '+wd:wd; if(m.measureText(tryS).width<=w) cur2=tryS; else { if(cur2) ls.push(cur2); cur2=wd; } });
+    if(cur2) ls.push(cur2); if(ls.length>max){ ls.length=max; let l=ls[max-1]; while(l&&m.measureText(l+'…').width>w) l=l.slice(0,-1); ls[max-1]=l+'…'; }
+    return ls.map(l=>{ while(m.measureText(l).width>w&&l.length>1) l=l.slice(0,-2)+'…'; return l; }); };
+  const RF='27px '+F, rowLines=rows.map(t=>wrap(t.note,fixed[2][1]-20,RF,2)), rowH=rowLines.map(l=>Math.max(1,l.length)*34+28);
+  const titleL=wrap(shName(R),W-2*P,'bold 50px '+F,2);
+  const headH=60+titleL.length*60+50+36, cardH=128, gap=14;
+  const monH=R.months&&R.months.length?70+58+R.months.length*56+20:0;
+  const tabH=70+60+rowH.reduce((a,b)=>a+b,0)+(cut?50:0)+66;
+  const H=headH+30+cardH+30+monH+tabH+90;
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const x=cv.getContext('2d');
+  const txt=(t,X,Y,font,col,al)=>{x.font=font;x.fillStyle=col;x.textAlign=al||'left';x.textBaseline='middle';x.fillText(t,X,Y)};
+  const rr=(X,Y,w,h,r,col)=>{x.fillStyle=col;x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();x.fill()};
+  const fit=(t,w,size,bold)=>{ let s2=size; x.font=(bold?'bold ':'')+s2+'px '+F; while(x.measureText(t).width>w&&s2>18){s2-=2;x.font=(bold?'bold ':'')+s2+'px '+F;} return (bold?'bold ':'')+s2+'px '+F; };
+  const tone=t=>t==='exp'?K.exp:t==='inc'?K.inc:K.fg;
+  x.fillStyle='#fff'; x.fillRect(0,0,W,H);
+  // header
+  x.fillStyle=K.acc; x.fillRect(0,0,W,headH);
+  let y=60; titleL.forEach(l=>{txt(l,P,y+8,'bold 50px '+F,'#fff');y+=60;});
+  txt(capF(R.kind)+'  ·  '+R.per,P,y+20,'30px '+F,'rgba(255,255,255,.85)');
+  y=headH+30;
+  // summary cards
+  const n=R.sum.length, cw=(W-2*P-gap*(n-1))/n;
+  R.sum.forEach(([l,v,t],i)=>{ const X=P+i*(cw+gap); rr(X,y,cw,cardH,18,K.card);
+    txt(l,X+20,y+40,fit(l,cw-40,24,false),K.mut); txt(v,X+20,y+88,fit(v,cw-40,38,true),tone(t)); });
+  y+=cardH+30;
+  const col=(defs,Y,h,cells,font,colors)=>{ let X=P; defs.forEach((d,i)=>{ const w=d[1], al=d[2], c=cells[i];
+      if(Array.isArray(c)){ const lh=34, top=Y+h/2-(c.length-1)*lh/2; c.forEach((l,j)=>txt(l,X+10,top+j*lh,font,colors[i]||K.fg,'left')); }
+      else if(c!=null) txt(c,al==='r'?X+w-12:al==='c'?X+w/2:X+10,Y+h/2,font,colors[i]||K.fg,al==='r'?'right':al==='c'?'center':'left');
+      X+=w; }); };
+  // months
+  if(monH){
+    txt('По месяцам',P,y+35,'bold 32px '+F,K.fg); y+=70;
+    const md=[['Месяц',W-2*P-3*200,'l'],['Доход',200,'r'],['Расход',200,'r'],['Итог',200,'r']];
+    rr(P,y,W-2*P,58,12,K.accS); col(md,y,58,md.map(d=>d[0]),'bold 25px '+F,md.map(()=>K.acc)); y+=58;
+    R.months.forEach((mo,i)=>{ if(i%2) {x.fillStyle=K.zeb;x.fillRect(P,y,W-2*P,56);}
+      const net=mo.i-mo.e; col(md,y,56,[mo.name,mo.i?nfS(mo.i):'—',mo.e?nfS(mo.e):'—',(net>0?'+':net<0?'−':'')+nfS(Math.abs(net))],'27px '+F,[K.fg,K.inc,K.exp,net<0?K.exp:K.inc]); y+=56; });
+    y+=20;
+  }
+  // records
+  txt('Записи ('+R.rows.length+')',P,y+35,'bold 32px '+F,K.fg); y+=70;
+  rr(P,y,W-2*P,60,12,K.accS); col(fixed,y,60,fixed.map(d=>d[0]),'bold 25px '+F,fixed.map(()=>K.acc)); y+=60;
+  if(cut){ txt('… ранее ещё '+cut+' '+plural(cut,'запись','записи','записей')+' (в итогах учтены)',P+10,y+25,'italic 24px '+F,K.mut); y+=50; }
+  rows.forEach((t,i)=>{ const h=rowH[i]; if(i%2){x.fillStyle=K.zeb;x.fillRect(P,y,W-2*P,h);}
+    x.fillStyle=K.line; x.fillRect(P,y+h-1,W-2*P,1);
+    const note=rowLines[i].length?rowLines[i]:['—'];
+    const cells=R.both?[String(cut+i+1),dd(t.date),note,t.type==='inc'?nfS(t.amount):'',t.type==='exp'?nfS(t.amount):'']
+                      :[String(cut+i+1),dd(t.date),note,nfS(t.amount)];
+    col(fixed,y,h,cells,RF,R.both?[K.mut,K.fg,rowLines[i].length?K.fg:K.mut,K.inc,K.exp]:[K.mut,K.fg,rowLines[i].length?K.fg:K.mut,tone(R.ty)]); y+=h; });
+  // total row
+  x.fillStyle=K.acc; x.fillRect(P,y,W-2*P,3); y+=3;
+  if(R.both){ col(fixed,y,63,[null,'Итого',null,nfS(R.inc),nfS(R.exp)],'bold 28px '+F,[0,K.fg,0,K.inc,K.exp]);
+    txt('Итог: '+money(R.inc-R.exp,true),P+fixed[0][1]+fixed[1][1]+10,y+31,'bold 28px '+F,R.inc-R.exp<0?K.exp:K.inc); }
+  else col(fixed,y,63,[null,'Итого',null,nfS(R.total)],'bold 28px '+F,[0,K.fg,0,tone(R.ty)]);
+  y+=63;
+  txt('Кошелёк · отчёт от '+dd(today()),W/2,H-45,'24px '+F,K.mut,'center');
+  return cv;
+}
+/* share sheet */
 const canNativeShare=()=>!!(NATIVE&&NATIVE.shareText);
-function openShare(text){
-  $('shText').value=text;
-  $('shMore').hidden=!(canNativeShare()||navigator.share);
+const canNativeImg=()=>!!(NATIVE&&NATIVE.shareImage);
+let shR=null, shMode='img', shCanvas=null, shFile=null;
+const canImg=()=>canNativeImg()||(!NATIVE&&!!navigator.canShare);
+function openShare(R){
+  shR=R; $('shText').value=repText(R);
+  shCanvas=repImage(R); $('shImg').src=shCanvas.toDataURL('image/png'); shFile=null;
+  if(!NATIVE&&navigator.canShare) shCanvas.toBlob(b=>{ try{ const f=new File([b],'otchet-'+today()+'.png',{type:'image/png'}); if(navigator.canShare({files:[f]})) shFile=f; }catch(e){} });
+  setShMode(canImg()?'img':'txt');
   $('shscrim').hidden=false;
 }
+function setShMode(m){
+  shMode=m;
+  document.querySelectorAll('#shMode button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===m));
+  $('shPrev').hidden=m!=='img'; $('shText').hidden=m!=='txt';
+  $('shMore').hidden=m==='img'?!canImg():!(canNativeShare()||navigator.share);
+  $('shCopy').textContent=m==='img'?'💾 Сохранить':'📋 Скопировать';
+  $('shNote').textContent=m==='txt'?'Текст можно поправить перед отправкой.'
+    :canImg()?'Отчёт уйдёт картинкой с таблицей.'
+    :NATIVE?'Чтобы отправлять таблицу картинкой, установите новую версию приложения (koshelek.apk со страницы Releases). Пока можно отправить текстом или сохранить картинку.'
+    :'Этот браузер не умеет отправлять картинки — нажмите «Сохранить» и отправьте файл из галереи, или выберите «Текст».';
+}
 function closeShare(){ $('shscrim').hidden=true; }
+const PKG={wa:'com.whatsapp,com.whatsapp.w4b',tg:'org.telegram.messenger,org.telegram.messenger.web,org.thunderdog.challegram',more:''};
 function shareVia(app){
+  if(shMode==='img'){
+    if(canNativeImg()){ try{ NATIVE.shareImage(shCanvas.toDataURL('image/png').split(',')[1],PKG[app],shName(shR)+' — '+shR.kind+', '+shR.per); closeShare(); return; }catch(e){} }
+    if(shFile){ navigator.share({files:[shFile]}).then(closeShare).catch(()=>{}); return; }
+    toast('Отправка картинкой здесь недоступна — выберите «Текст» или «Сохранить»'); return;
+  }
   const text=$('shText').value.trim(); if(!text){ toast('Текст отчёта пустой'); return; }
   const e=encodeURIComponent(text);
-  if(canNativeShare()){
-    try{ NATIVE.shareText(text,app==='wa'?'com.whatsapp,com.whatsapp.w4b':app==='tg'?'org.telegram.messenger,org.telegram.messenger.web,org.thunderdog.challegram':''); closeShare(); return; }catch(err){}
-  }
-  if(app==='more'){
-    if(navigator.share){ navigator.share({text}).then(closeShare).catch(()=>{}); }
-    return;
-  }
-  // without the native share: open the messenger by link
+  if(canNativeShare()){ try{ NATIVE.shareText(text,PKG[app]); closeShare(); return; }catch(err){} }
+  if(app==='more'){ if(navigator.share) navigator.share({text}).then(closeShare).catch(()=>{}); return; }
   const url=app==='wa'?(NATIVE?'whatsapp://send?text='+e:'https://wa.me/?text='+e)
                       :(NATIVE?'tg://msg?text='+e:'https://t.me/share/url?url=%20&text='+e);
   if(NATIVE) location.href=url; else window.open(url,'_blank');
   toast('Если '+(app==='wa'?'WhatsApp':'Telegram')+' не открылся — нажмите «Скопировать» и вставьте текст в чат');
+}
+function shareSave(){
+  if(shMode!=='img') return shareCopy();
+  const name='otchet-'+today()+'.png';
+  if(NATIVE&&NATIVE.saveImage){ try{ toast(NATIVE.saveImage(shCanvas.toDataURL('image/png').split(',')[1],name)?'Картинка сохранена в галерею (папка «Кошелёк»)':'Не удалось сохранить'); return; }catch(e){} }
+  if(NATIVE){ toast('Сохранение картинки появится после установки новой версии приложения'); return; }
+  const a=document.createElement('a'); a.href=shCanvas.toDataURL('image/png'); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  toast('Картинка сохранена в «Загрузки»');
 }
 async function shareCopy(){
   const t=$('shText'); let ok=false;
@@ -1698,7 +1804,7 @@ $('syncNote').textContent='Учёт расходов и доходов';
 $('exportBtn').onclick=exportData;
 $('copyBtn').onclick=()=>openTransfer('copy'); $('pasteBtn').onclick=()=>openTransfer('paste');
 $('xGo').onclick=transferGo; $('xClose').onclick=()=>$('xscrim').hidden=true; $('xscrim').onclick=e=>{if(e.target===$('xscrim'))$('xscrim').hidden=true};
-$('shWa').onclick=()=>shareVia('wa'); $('shTg').onclick=()=>shareVia('tg'); $('shMore').onclick=()=>shareVia('more'); $('shCopy').onclick=shareCopy;
+$('shWa').onclick=()=>shareVia('wa'); $('shTg').onclick=()=>shareVia('tg'); $('shMore').onclick=()=>shareVia('more'); $('shCopy').onclick=shareSave; document.querySelectorAll('#shMode button').forEach(b=>b.onclick=()=>setShMode(b.dataset.m));
 $('shClose').onclick=closeShare; $('shscrim').onclick=e=>{if(e.target===$('shscrim'))closeShare()};
 $('importFile').onchange=e=>{const f=e.target.files[0]; if(f) importData(f); e.target.value=''};
 let deferredPrompt=null;

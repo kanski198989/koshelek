@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Base64;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -24,6 +25,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import org.json.JSONObject;
 
@@ -189,6 +191,72 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(MainActivity.this, "Не нашлось приложения для отправки", Toast.LENGTH_SHORT).show();
                 }
             });
+        }
+
+        // Report as a picture (table): send it to WhatsApp / Telegram or the system share menu.
+        @JavascriptInterface
+        public void shareImage(String base64, String pkgs, String caption) {
+            Uri uri;
+            try {
+                File dir = new File(getCacheDir(), "share");
+                if (!dir.exists() && !dir.mkdirs()) throw new Exception("dir");
+                File f = new File(dir, "otchet-" + System.currentTimeMillis() + ".png");
+                try (FileOutputStream os = new FileOutputStream(f)) { os.write(Base64.decode(base64, Base64.DEFAULT)); }
+                File[] old = dir.listFiles();
+                if (old != null) for (File o : old) if (!o.equals(f) && System.currentTimeMillis() - o.lastModified() > 3600_000L) o.delete();
+                uri = FileProvider.getUriForFile(MainActivity.this, "kz.koshelek.app.files", f);
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Не удалось подготовить картинку", Toast.LENGTH_SHORT).show());
+                return;
+            }
+            final Uri u = uri;
+            runOnUiThread(() -> {
+                Intent send = new Intent(Intent.ACTION_SEND);
+                send.setType("image/png");
+                send.putExtra(Intent.EXTRA_STREAM, u);
+                if (caption != null && !caption.isEmpty()) send.putExtra(Intent.EXTRA_TEXT, caption);
+                send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                if (pkgs != null) {
+                    for (String p : pkgs.split(",")) {
+                        if (p.trim().isEmpty()) continue;
+                        Intent t = new Intent(send).setPackage(p.trim());
+                        try { startActivity(t); return; } catch (Exception ignored) { }
+                    }
+                }
+                try {
+                    startActivity(Intent.createChooser(send, "Отправить отчёт"));
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "Не нашлось приложения для отправки", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        // Report picture into the gallery (Pictures/Кошелёк).
+        @JavascriptInterface
+        public boolean saveImage(String base64, String name) {
+            byte[] bytes = Base64.decode(base64, Base64.DEFAULT);
+            String safe = name.replaceAll("[^\\w.\\-]", "_");
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ContentValues v = new ContentValues();
+                    v.put(MediaStore.Images.Media.DISPLAY_NAME, safe);
+                    v.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+                    v.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Кошелёк");
+                    Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+                    if (uri == null) return false;
+                    try (OutputStream os = getContentResolver().openOutputStream(uri)) {
+                        if (os == null) return false;
+                        os.write(bytes);
+                    }
+                } else {
+                    File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Кошелёк");
+                    if (!dir.exists() && !dir.mkdirs()) return false;
+                    try (FileOutputStream os = new FileOutputStream(new File(dir, safe))) { os.write(bytes); }
+                }
+                return true;
+            } catch (Exception e) {
+                return false;
+            }
         }
 
         // Backups and Excel files: WebView can't download blob: links, so the page hands the text here.
