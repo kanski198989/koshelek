@@ -139,11 +139,15 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .cats button[aria-pressed="true"]{border-color:var(--c);background:var(--surface);color:var(--fg);font-weight:600}
 .row{display:grid;grid-template-columns:auto 1fr;gap:8px}
 .row input{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-width:0;width:100%}
-.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.keys{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 .keys button{height:50px;border-radius:12px;background:var(--surface);font-size:20px;font-weight:500}
 .keys button:active{background:var(--surface-2)}
 .keys .save{grid-row:span 2;height:auto;color:#fff;font-size:15px;font-weight:600}
 .keys .save.e{background:var(--exp)} .keys .save.i{background:var(--inc)}
+.keys .op{background:var(--surface-2);color:var(--accent);font-weight:600}
+.keys .save.eq{font-size:28px}
+.amount .calc{margin-right:auto;color:var(--muted);font-weight:600;font-size:16px;white-space:nowrap}
+.amount .v{font-size:clamp(20px,7vw,30px)}
 .err{color:var(--exp);font-size:13px;min-height:1.2em;text-align:center}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:20px;font-size:14px;z-index:30}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .22s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.4}}
@@ -260,6 +264,28 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .field .lbl{margin:0}
 .field input{font:inherit;font-size:16px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
 .seg button[aria-pressed="true"].a{background:var(--inc);color:#fff}
+/* same-name analysis */
+.seg button[aria-pressed="true"].s{background:var(--accent);color:var(--bg)}
+.sscope{align-self:flex-start}
+.sscope button{font-size:13px;padding:6px 12px}
+.slist{display:flex;flex-direction:column;gap:6px}
+.sitem{background:var(--bg);border-radius:12px;overflow:hidden}
+.srow{width:100%;display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:9px 10px;text-align:left}
+.srow .ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:16px;background:var(--c)}
+.srow b{font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow b small{display:block;font-weight:400;color:var(--muted);font-size:12px;white-space:normal}
+.srow .v{text-align:right;font-weight:600;font-size:14px;white-space:nowrap} .srow .v small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+.sdet{padding:4px 12px 14px;display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line)}
+.sstats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}
+.sstats div{background:var(--surface);border-radius:10px;padding:8px 9px;min-width:0}
+.sstats span{display:block;font-size:11px;color:var(--muted)}
+.sstats b{display:block;font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.slast{display:flex;flex-direction:column}
+.slast div{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
+.slast div:last-child{border-bottom:0}
+.slast span{color:var(--muted)}
+.smore{align-self:center}
+@media (max-width:360px){.sstats{grid-template-columns:repeat(2,1fr)}}
 /* lock */
 .lock{position:fixed;inset:0;z-index:50;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px 16px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto}
 .lock.show,.locked .lock{display:flex}
@@ -274,6 +300,9 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .pad button:active{background:var(--surface-2)}
 .pad button.t{background:none;font-size:14px;color:var(--muted)}
 .pad button.t:disabled{visibility:hidden}
+.lbio{display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:24px;background:var(--surface);color:var(--accent);font-weight:600;font-size:15px}
+.lbio[hidden]{display:none}
+.lbio svg{width:28px;height:28px}
 .lfoot{display:flex;flex-direction:column;align-items:center;gap:8px;max-width:320px;text-align:center}
 .lfoot button{font-size:14px;color:var(--muted);padding:8px 12px;border-radius:10px}
 .lfoot p{margin:0;font-size:13px;color:var(--muted)}
@@ -347,6 +376,12 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
     <div id="rTop" class="rtop"></div>
   </section>
   <section class="rcard">
+    <div class="rhead"><h2>Одинаковые записи</h2><div class="seg" id="sameType"><button class="e" data-t="exp" aria-pressed="true">Расходы</button><button class="i" data-t="inc" aria-pressed="false">Доходы</button></div></div>
+    <div class="seg sscope" id="sameScope"><button class="s" data-s="year" aria-pressed="true">За этот год</button><button class="s" data-s="all" aria-pressed="false">За всё время</button></div>
+    <div id="rSame" class="slist"></div>
+    <p class="note" style="text-align:left;margin:0">Записи с одинаковым комментарием (например «Такси» или «Бензин») собираются вместе. Нажмите на строку — откроется подробный анализ.</p>
+  </section>
+  <section class="rcard">
     <h2>Выгрузка в Excel</h2>
     <p class="note" style="text-align:left;margin:0 0 10px">Файл со всеми записями: дата, тип, категория, сумма, комментарий. Открывается в Excel и Google Таблицах.</p>
     <div class="tools" style="justify-content:flex-start;margin:0"><button class="ghost" id="xYear">Записи за год</button><button class="ghost" id="xAll">Все записи</button></div>
@@ -394,7 +429,7 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
       <div class="seg"><button class="e" id="tExp">Расход</button><button class="i" id="tInc">Доход</button></div>
       <button class="x" id="close" aria-label="Закрыть">×</button>
     </div>
-    <div class="amount"><span class="v num" id="amt">0</span><span class="cur" id="amtCur">₸</span></div>
+    <div class="amount"><span class="calc num" id="calcRes"></span><span class="v num" id="amt">0</span><span class="cur" id="amtCur">₸</span></div>
     <div class="cats" id="catPick"></div>
     <div class="row">
       <input type="date" id="fDate" aria-label="Дата">
@@ -402,10 +437,10 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
     </div>
     <div class="err" id="err" role="alert"></div>
     <div class="keys" id="keys">
-      <button>7</button><button>8</button><button>9</button><button data-k="back" aria-label="Стереть">⌫</button>
-      <button>4</button><button>5</button><button>6</button><button class="save e" id="save">Сохранить</button>
-      <button>1</button><button>2</button><button>3</button>
-      <button data-k="dot">,</button><button>0</button><button data-k="00">00</button><button data-k="clear">C</button>
+      <button>7</button><button>8</button><button>9</button><button class="op" data-k="÷" aria-label="Разделить">÷</button><button class="op" data-k="back" aria-label="Стереть">⌫</button>
+      <button>4</button><button>5</button><button>6</button><button class="op" data-k="×" aria-label="Умножить">×</button><button class="op" data-k="clear" aria-label="Очистить">C</button>
+      <button>1</button><button>2</button><button>3</button><button class="op" data-k="−" aria-label="Минус">−</button><button class="save e" id="save">Сохранить</button>
+      <button data-k="dot">,</button><button>0</button><button data-k="00">00</button><button class="op" data-k="+" aria-label="Плюс">+</button>
     </div>
   </div>
 </div>
@@ -465,7 +500,9 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
   <div class="sheet" role="dialog" aria-modal="true" aria-label="Пароль на вход">
     <div class="top"><b style="font-size:17px">Пароль на вход</b><button class="x" id="pClose" aria-label="Закрыть">×</button></div>
     <p class="note" style="text-align:left;margin:0">Пароль включён. Приложение спрашивает его при запуске и если было свёрнуто дольше 30 секунд.</p>
-    <button class="vsave" id="pChange">Изменить пароль</button>
+    <button class="vsave" id="pBio" hidden></button>
+    <p class="note" id="pBioNote" style="text-align:left;margin:0" hidden></p>
+    <button class="ghost" id="pChange" style="height:48px;font-size:15px">Изменить пароль</button>
     <button class="ghost" id="pOff" style="height:48px;font-size:15px">Отключить пароль</button>
   </div>
 </div>
@@ -478,6 +515,7 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
     <button>1</button><button>2</button><button>3</button><button>4</button><button>5</button><button>6</button><button>7</button><button>8</button><button>9</button>
     <button class="t" data-k="cancel" id="lCancel">Отмена</button><button>0</button><button class="t" data-k="back" aria-label="Стереть" style="font-size:22px">⌫</button>
   </div>
+  <button class="lbio" id="lBio" hidden aria-label="Войти по отпечатку или лицу"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 11v3.5a6 6 0 0 1-1.2 3.6"/><path d="M8.5 10.5a3.5 3.5 0 0 1 7 0v2.8c0 1.6-.3 3.1-.9 4.5"/><path d="M5.6 15.5c.3-1.2.4-2.4.4-3.6v-1.4a6 6 0 0 1 10.4-4.1"/><path d="M18 9.2c.3.8.5 1.7.5 2.6v1.5c0 1-.1 2-.3 3"/><path d="M3.8 12.4V10.5A8.2 8.2 0 0 1 16 3.3"/></svg><span>Отпечаток / лицо</span></button>
   <div class="lfoot" id="lFoot"></div>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -640,9 +678,11 @@ function openSheet(type,cat){
 function closeSheet(){$('scrim').hidden=true}
 function drawSheet(){
   $('tExp').setAttribute('aria-pressed',sType==='exp'); $('tInc').setAttribute('aria-pressed',sType==='inc');
-  $('amt').textContent=sAmt?sAmt.replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,' ').replace(/(,\d*) /g,'$1'):'0';
+  $('amt').textContent=sAmt?fmtExpr(sAmt):'0';
+  const hasOp=OPS_RE.test(sAmt.slice(1)), r=hasOp?calcEval(sAmt):null;
+  $('calcRes').textContent=hasOp&&r!=null&&isFinite(r)?'= '+nf.format(r):'';
   $('amt').className='v num '+(sType==='exp'?'amt-exp':'amt-inc'); $('amtCur').textContent=cur;
-  $('save').className='save '+(sType==='exp'?'e':'i');
+  $('save').className='save '+(sType==='exp'?'e':'i')+(hasOp?' eq':''); $('save').textContent=hasOp?'=':'Сохранить'; $('save').setAttribute('aria-label',hasOp?'Посчитать':'Сохранить');
   const pick=$('catPick'); pick.innerHTML='';
   (sType==='exp'?EXP:INC).forEach(c=>{const b=document.createElement('button');b.style.setProperty('--c',c[3]);
     b.setAttribute('aria-pressed',c[0]===sCat);b.innerHTML=`<span class="ic">${esc(c[2])}</span>`;b.append(c[1]);
@@ -651,16 +691,35 @@ function drawSheet(){
   nb.innerHTML='<span class="ic">＋</span>Своя'; nb.setAttribute('aria-label','Новая категория');
   nb.onclick=()=>openCatEditor(sType,null,'sheet'); pick.appendChild(nb);
 }
+const OPS='+−×÷', OPS_RE=/[+−×÷]/;
+const fmtNum=n=>n.replace('.',',').replace(/^(\d+)/,m=>m.replace(/\B(?=(\d{3})+(?!\d))/g,' '));
+const fmtExpr=e=>e.split(/([+−×÷])/).map(x=>OPS.includes(x)&&x?' '+x+' ':fmtNum(x)).join('');
+function calcEval(e){
+  const t=e.split(/([+−×÷])/).filter(x=>x!==''); if(!t.length) return null;
+  if(OPS.includes(t[t.length-1])) t.pop();
+  const v=[parseFloat(t[0])], o=[];
+  for(let i=1;i<t.length;i+=2){ const op=t[i], n=parseFloat(t[i+1]);
+    if(op==='×') v[v.length-1]*=n; else if(op==='÷'){ if(!n) return Infinity; v[v.length-1]/=n; } else { v.push(op==='−'?-n:n); } }
+  return Math.round(v.reduce((a,b)=>a+b,0)*100)/100;
+}
 function key(k){
   $('err').textContent='';
+  const seg=sAmt.split(OPS_RE).pop(), last=sAmt.slice(-1);
   if(k==='back') sAmt=sAmt.slice(0,-1);
   else if(k==='clear') sAmt='';
-  else if(k==='dot'){ if(!sAmt.includes('.')) sAmt=(sAmt||'0')+'.'; }
-  else { const add=k==='00'?'00':k; if(sAmt.includes('.')&&sAmt.split('.')[1].length+add.length>2) return;
-    if(!sAmt.includes('.')&&sAmt.replace(/^0+/,'').length>=10) return; sAmt=(sAmt==='0'?'':sAmt)+add; if(sAmt==='00')sAmt='0'; }
+  else if(OPS.includes(k)){ if(!sAmt) return; let e=sAmt.replace(/\.$/,''); if(OPS.includes(e.slice(-1))) e=e.slice(0,-1); if(!e) return; sAmt=e+k; }
+  else if(k==='dot'){ if(!seg.includes('.')) sAmt+=(seg?'':'0')+'.'; }
+  else { const add=k==='00'?'00':k; if(seg.includes('.')&&seg.split('.')[1].length+add.length>2) return;
+    if(!seg.includes('.')&&seg.replace(/^0+/,'').length>=10) return;
+    if(seg==='0') sAmt=sAmt.slice(0,-1);
+    if(add==='00'&&!seg) sAmt+='0'; else sAmt+=add; }
   drawSheet();
 }
 function submit(){
+  if(OPS_RE.test(sAmt.slice(1))){ const r=calcEval(sAmt);
+    if(!isFinite(r)){ $('err').textContent='На ноль делить нельзя'; return; }
+    if(r<=0){ $('err').textContent='Получилось '+nf.format(r)+' — сумма должна быть больше нуля'; return; }
+    sAmt=String(r); drawSheet(); return; }
   const a=parseFloat(sAmt);
   if(!a||a<=0){$('err').textContent='Введите сумму больше нуля';return}
   const date=$('fDate').value||today();
@@ -891,6 +950,113 @@ function drawReport(){
     const r=document.createElement('div'); r.className='trow'; r.style.setProperty('--c',c.color);
     r.innerHTML=`<span class="ic">${esc(c.icon)}</span><span class="t"><b>${esc(c.name)}</b><span class="bar"><i style="width:${pct}%"></i></span></span><span class="v num">${esc(money(v))}<small>${pct}%</small></span>`;
     tb.appendChild(r);});
+  drawSame();
+}
+/* ---------- same-name analysis ---------- */
+let sameType='exp', sameScope='year', sameOpen=null, sameAll=false;
+const normName=n=>String(n||'').toLowerCase().replace(/ё/g,'е').replace(/[.,!?;:"«»()]+/g,' ').replace(/\s+/g,' ').trim();
+const dayN=d=>Math.round(new Date(d+'T12:00')/864e5);
+const fmtD=d=>{const p=d.split('-');return (+p[2])+' '+MONg[+p[1]-1]+(+p[0]!==new Date().getFullYear()?' '+p[0]:'')};
+const plural=(n,a,b,c)=>{const m=n%10,h=n%100;return m===1&&h!==11?a:m>=2&&m<=4&&(h<10||h>=20)?b:c};
+function sameGroups(){
+  const src=tx.filter(t=>t.type===sameType&&(sameScope==='all'||t.date.startsWith(rYear+'-'))&&normName(t.note));
+  const total=src.reduce((a,t)=>a+t.amount,0);
+  const g={};
+  src.forEach(t=>{const k=normName(t.note);(g[k]=g[k]||[]).push(t)});
+  const out=Object.keys(g).filter(k=>g[k].length>=2).map(k=>{
+    const list=g[k].slice().sort((a,b)=>a.date.localeCompare(b.date)||a.created-b.created);
+    const spell={}; list.forEach(t=>{const n=t.note.trim().replace(/\s+/g,' ');spell[n]=(spell[n]||0)+1});
+    const name=Object.keys(spell).sort((a,b)=>spell[b]-spell[a])[0];
+    const cats={}; list.forEach(t=>{cats[t.cat]=(cats[t.cat]||0)+1});
+    const sum=list.reduce((a,t)=>a+t.amount,0);
+    return {k,name,list,sum,cats,cat:Object.keys(cats).sort((a,b)=>cats[b]-cats[a])[0]};
+  }).sort((a,b)=>b.sum-a.sum);
+  return {out,total};
+}
+function sameMonths(list){
+  // 12 columns: Jan–Dec of the year, or the last 12 months for "all time"
+  const cols=[]; const n=new Date();
+  if(sameScope==='year') for(let i=0;i<12;i++) cols.push(rYear+'-'+String(i+1).padStart(2,'0'));
+  else for(let i=11;i>=0;i--){const d=new Date(n.getFullYear(),n.getMonth()-i,1);cols.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));}
+  const v=cols.map(c=>list.filter(t=>t.date.startsWith(c)).reduce((a,t)=>a+t.amount,0));
+  return {cols,v};
+}
+function sameChart(list){
+  const {cols,v}=sameMonths(list); const max=Math.max(...v,0); if(!max) return '';
+  const W=320,H=96,B=16,T=12,cw=W/12,bw=Math.min(14,cw*.6),col=sameType==='exp'?'var(--exp)':'var(--inc)';
+  let g=''; const mi=v.lastIndexOf(max);
+  v.forEach((x,i)=>{const cx=cw*i+cw/2, h=x?Math.max((H-B-T)*x/max,2):0;
+    if(x) g+=`<rect x="${cx-bw/2}" y="${H-B-h}" width="${bw}" height="${h}" rx="2" fill="${col}"><title>${MON[+cols[i].slice(5)-1]}: ${money(x)}</title></rect>`+(i===mi?`<text x="${cx}" y="${H-B-h-3}" text-anchor="middle">${short(x)}</text>`:'');
+    g+=`<text x="${cx}" y="${H-4}" text-anchor="middle">${MONs[+cols[i].slice(5)-1]}</text>`;});
+  return `<div class="chartbox"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Суммы по месяцам">${g}</svg></div>`;
+}
+function sameInsights(G,total){
+  const L=G.list, n=L.length, isExp=sameType==='exp', an=[];
+  const row=(c,t,v,p)=>an.push(`<div class="an"><span class="dot ${c}"></span><div><b>${esc(t)}<span>${esc(v)}</span></b><p>${esc(p)}</p></div></div>`);
+  const avg=G.sum/n;
+  // frequency and yearly projection
+  const span=dayN(L[n-1].date)-dayN(L[0].date);
+  if(n>=3&&span>0){
+    const every=span/(n-1), monthly=every>=26&&every<=35, perMonth=monthly?avg:avg*30.4/every;
+    const ev=Math.round(every);
+    const evT=every<1.5?'почти каждый день':monthly?'примерно раз в месяц':ev>=6&&ev<=8?'примерно раз в неделю':ev>=13&&ev<=16?'раз в две недели':'примерно раз в '+ev+' '+plural(ev,'день','дня','дней');
+    row('n','Как часто',evT,isExp
+      ?`В таком темпе это ~${money(Math.round(perMonth))} в месяц и ~${money(Math.round(perMonth*12))} в год.`+(perMonth>=1000?` Если тратить на это вдвое меньше — сэкономите ~${money(Math.round(perMonth*6))} за год.`:'')
+      :`В таком темпе это ~${money(Math.round(perMonth))} в месяц и ~${money(Math.round(perMonth*12))} в год.`);
+    const since=dayN(today())-dayN(L[n-1].date);
+    if(!isExp&&since>every*1.8&&since>20) row('y','Давно не было',since+' '+plural(since,'день','дня','дней'),'Обычно этот доход приходит чаще. Проверьте, не задерживается ли он.');
+  } else if(n===2) row('n','Как часто','2 раза',`Между записями ${span} ${plural(span,'день','дня','дней')}. Когда записей станет больше, посчитаю, сколько это выходит в месяц и в год.`);
+  // amount trend
+  if(n>=2){
+    const h=Math.floor(n/2), a1=L.slice(0,h).reduce((a,t)=>a+t.amount,0)/h, a2=L.slice(n-h).reduce((a,t)=>a+t.amount,0)/h;
+    const ch=a1?(a2-a1)/a1:0;
+    if(Math.abs(ch)>=.1){ const up=ch>0;
+      row(isExp?(up?'y':'g'):(up?'g':'y'),up?'Сумма растёт':'Сумма уменьшается',(up?'+':'−')+pct(Math.abs(ch)),
+        `${n>=4?'Раньше в среднем':'В первый раз'} ${money(Math.round(a1))}, ${n>=4?'теперь':'в последний'} — ${money(Math.round(a2))}.`+(isExp&&up?' Возможно, подорожало или стали брать больше.':''));
+    } else if(n>=3) row('g','Сумма стабильная','±'+pct(Math.abs(ch)),`Обычно около ${money(Math.round(avg))} за раз.`);
+  }
+  // this month vs usual
+  const cm=today().slice(0,7), byM={}; L.forEach(t=>{const m=t.date.slice(0,7);byM[m]=(byM[m]||0)+t.amount});
+  const past=Object.keys(byM).filter(m=>m<cm);
+  if(byM[cm]&&past.length>=2){ const usual=past.reduce((a,m)=>a+byM[m],0)/past.length, r=byM[cm]/usual;
+    if(r>=1.3) row(isExp?'r':'g','В этом месяце больше обычного',money(byM[cm]),`Обычно за месяц ~${money(Math.round(usual))}, а сейчас уже на ${pct(r-1)} больше.`);
+    else if(r<=.7) row(isExp?'g':'y','В этом месяце пока меньше обычного',money(byM[cm]),`Обычно за месяц ~${money(Math.round(usual))}.`);
+    else row('g','Этот месяц — как обычно',money(byM[cm]),`Обычно за месяц ~${money(Math.round(usual))}.`);
+  }
+  // share
+  if(total>0) row(G.sum/total>=.2&&isExp?'y':'n',isExp?'Доля от всех расходов':'Доля от всех доходов',pct(G.sum/total),
+    isExp?(G.sum/total>=.2?'Это одна из главных статей расходов — на ней проще всего сэкономить.':'Среди расходов с комментарием.'):'Среди доходов с комментарием.');
+  // categories mismatch
+  const cs=Object.keys(G.cats);
+  if(cs.length>1) row('y','Записано в разных категориях',cs.length+' кат.','Одна и та же запись лежит в категориях: '+cs.map(c=>catOf(c,sameType).name).join(', ')+'. Чтобы отчёты были точнее, выбирайте одну.');
+  return an.join('');
+}
+function drawSame(){
+  document.querySelectorAll('#sameType button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===sameType));
+  document.querySelectorAll('#sameScope button').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.s===sameScope); if(b.dataset.s==='year') b.textContent='За '+rYear+' год';});
+  const box=$('rSame'); const {out,total}=sameGroups();
+  if(!out.length){ box.innerHTML=`<p class="note" style="text-align:left;margin:0">Пока нет повторяющихся ${sameType==='exp'?'расходов':'доходов'}${sameScope==='year'?' за '+rYear+' год':''}. Пишите в комментарии одинаковое название — например «Такси», «Бензин», «Зарплата» — и здесь появится анализ.</p>`; return; }
+  const shown=sameAll?out:out.slice(0,12);
+  box.innerHTML='';
+  shown.forEach(G=>{
+    const c=catOf(G.cat,sameType), n=G.list.length, avg=G.sum/n, open=sameOpen===G.k;
+    const it=document.createElement('div'); it.className='sitem';
+    it.innerHTML=`<button class="srow" style="--c:${esc(c.color)}" aria-expanded="${open}"><span class="ic">${esc(c.icon)}</span><b>${esc(G.name)}<small>${n} ${plural(n,'раз','раза','раз')} · последний ${esc(fmtD(G.list[n-1].date))}</small></b><span class="v num ${sameType==='exp'?'amt-exp':'amt-inc'}">${esc(money(G.sum))}<small>в ср. ${esc(money(Math.round(avg)))}</small></span></button>`;
+    if(open){
+      const amts=G.list.map(t=>t.amount), mn=Math.min(...amts), mx=Math.max(...amts);
+      const last=G.list.slice(-5).reverse().map(t=>`<div><span>${esc(fmtD(t.date))}</span><b class="num">${esc(money(t.amount))}</b></div>`).join('');
+      it.insertAdjacentHTML('beforeend',`<div class="sdet">
+        <div class="sstats"><div><span>Всего</span><b>${esc(money(G.sum))}</b></div><div><span>Сколько раз</span><b>${n}</b></div><div><span>В среднем</span><b>${esc(money(Math.round(avg)))}</b></div>
+        <div><span>Меньше всего</span><b>${esc(money(mn))}</b></div><div><span>Больше всего</span><b>${esc(money(mx))}</b></div><div><span>Первый раз</span><b>${esc(fmtD(G.list[0].date))}</b></div></div>
+        ${sameChart(G.list)}
+        <div class="alist">${sameInsights(G,total)}</div>
+        <div><div class="lbl" style="margin-bottom:4px">Последние записи</div><div class="slast">${last}</div></div>
+      </div>`);
+    }
+    it.querySelector('.srow').onclick=()=>{sameOpen=open?null:G.k;drawSame();};
+    box.appendChild(it);
+  });
+  if(out.length>12){ const b=document.createElement('button'); b.className='ghost smore'; b.textContent=sameAll?'Свернуть':'Показать все ('+out.length+')'; b.onclick=()=>{sameAll=!sameAll;drawSame()}; box.appendChild(b); }
 }
 function exportCSV(all){
   const rows=(all?tx:tx.filter(t=>t.date.startsWith(rYear+'-'))).slice().sort((a,b)=>a.date.localeCompare(b.date)||a.created-b.created);
@@ -1120,19 +1286,62 @@ function delAsset(){
 /* ---------- password ---------- */
 let pinMode=null, pinStep=0, pinBuf='', pinFirst='', pinFails=0, pinUntil=0, hiddenAt=0, forgotStep=0;
 const pinOn=()=>{const p=store.get('pin',null);return !!(p&&p.hash)};
+/* ---------- biometrics (fingerprint / face via WebAuthn) ---------- */
+const b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const unb64=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+const rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+const bioOn=()=>{const b=store.get('bio',null);return !!(b&&b.id&&b.host===location.hostname)};
+let bioAvail=null, bioBusy=false;
+async function bioCheck(){
+  if(bioAvail!==null) return bioAvail;
+  try{ bioAvail=!!(window.PublicKeyCredential&&window.isSecureContext&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); }catch(e){ bioAvail=false; }
+  return bioAvail;
+}
+async function bioEnable(){
+  try{
+    const c=await navigator.credentials.create({publicKey:{rp:{name:'Кошелёк',id:location.hostname},
+      user:{id:rnd(16),name:'koshelek',displayName:'Кошелёк'},challenge:rnd(32),
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'discouraged'},
+      timeout:60000,attestation:'none'}});
+    if(!c) throw 0;
+    store.set('bio',{id:b64(c.rawId),host:location.hostname}); toast('Вход по отпечатку / лицу включён');
+  }catch(e){ toast(e&&e.name==='NotAllowedError'?'Отменено':'Не получилось включить. Проверьте, что на телефоне настроен отпечаток или лицо'); }
+  drawBio(); drawPinBtn();
+}
+function bioDisable(){ try{localStorage.removeItem('bio')}catch(e){} toast('Вход по отпечатку / лицу выключен'); drawBio(); drawPinBtn(); }
+async function bioUnlock(){
+  if(!bioOn()||bioBusy||pinMode!=='unlock') return;
+  bioBusy=true;
+  try{
+    const a=await navigator.credentials.get({publicKey:{challenge:rnd(32),rpId:location.hostname,
+      allowCredentials:[{type:'public-key',id:unb64(store.get('bio').id),transports:['internal']}],userVerification:'required',timeout:60000}});
+    if(a&&pinMode==='unlock'){ pinFails=0; closePin(); }
+  }catch(e){ if(e&&e.name!=='NotAllowedError'&&e.name!=='AbortError') $('lErr').textContent='Отпечаток не сработал — введите пароль'; }
+  bioBusy=false;
+}
+async function drawBio(){
+  const ok=await bioCheck(), on=bioOn();
+  $('pBio').hidden=!ok; $('pBio').textContent=on?'Выключить вход по отпечатку / лицу':'👆 Входить по отпечатку / лицу';
+  $('pBio').className=on?'ghost':'vsave'; if(on) $('pBio').style.cssText='height:48px;font-size:15px'; else $('pBio').style.cssText='';
+  $('pBioNote').hidden=false;
+  $('pBioNote').textContent=!ok?'Вход по отпечатку / лицу на этом телефоне или в этом браузере недоступен. Обычно он работает в Chrome и Samsung Internet; на Huawei без сервисов Google может не работать — тогда входите по паролю.'
+    :on?'Включён. Пароль остаётся запасным способом входа.':'Можно открывать приложение отпечатком пальца или лицом — так же, как разблокируете телефон. Пароль останется запасным.';
+}
 async function hashPin(p,salt){ const s=salt+':'+p;
   try{ if(window.crypto&&crypto.subtle){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')} }catch(e){}
   let h=5381; for(const ch of s) h=((h*33)^ch.charCodeAt(0))>>>0; return 'd'+h.toString(16); }
 async function checkPin(p){ const s=store.get('pin',null); return !!s&&(await hashPin(p,s.salt))===s.hash; }
 async function savePin(p){ const salt=Math.random().toString(36).slice(2,10)+Date.now().toString(36); store.set('pin',{salt,hash:await hashPin(p,salt)}); }
-function drawPinBtn(){ $('pinBtn').textContent=pinOn()?'🔒 Пароль: включён':'🔒 Поставить пароль'; }
-function openPin(mode){ pinMode=mode; pinStep=0; pinBuf=''; pinFirst=''; forgotStep=0; $('lErr').textContent=''; $('lock').classList.add('show'); drawPin(); }
+function drawPinBtn(){ $('pinBtn').textContent=pinOn()?('🔒 Пароль: включён'+(bioOn()?' · 👆':'')):'🔒 Поставить пароль'; }
+function openPin(mode){ pinMode=mode; pinStep=0; pinBuf=''; pinFirst=''; forgotStep=0; $('lErr').textContent=''; $('lock').classList.add('show'); drawPin(); if(mode==='unlock'&&bioOn()) setTimeout(bioUnlock,350); }
 function closePin(){ $('lock').classList.remove('show'); document.documentElement.classList.remove('locked'); pinMode=null; }
 function drawPin(){
   const T={unlock:['Введите пароль'],set:['Придумайте пароль из 4 цифр','Повторите пароль'],change:['Введите текущий пароль','Новый пароль из 4 цифр','Повторите новый пароль'],off:['Введите текущий пароль']};
   $('lTitle').textContent=T[pinMode][pinStep]||'';
   $('lDots').querySelectorAll('i').forEach((d,i)=>d.classList.toggle('on',i<pinBuf.length));
   $('lCancel').disabled=pinMode==='unlock';
+  $('lBio').hidden=!(pinMode==='unlock'&&bioOn());
   const f=$('lFoot'); f.innerHTML='';
   if(pinMode!=='unlock') return;
   if(forgotStep===0){ const b=document.createElement('button'); b.textContent='Забыли пароль?'; b.onclick=()=>{forgotStep=1;drawPin()}; f.appendChild(b); }
@@ -1158,13 +1367,14 @@ async function pinDone(){
     if(!(await checkPin(p))){ pinFails++; if(pinFails>=5){pinUntil=Date.now()+30000;pinFails=0;pinWrong('Слишком много попыток. Подождите 30 секунд')} else pinWrong('Неверный пароль'); return; }
     pinFails=0;
     if(mode==='unlock'){ closePin(); return; }
-    if(mode==='off'){ try{localStorage.removeItem('pin')}catch(e){} closePin(); drawPinBtn(); toast('Пароль отключён'); return; }
+    if(mode==='off'){ try{localStorage.removeItem('pin');localStorage.removeItem('bio')}catch(e){} closePin(); drawPinBtn(); toast('Пароль отключён'); return; }
     pinStep=1; drawPin(); return;
   }
   const first=mode==='set'?0:1;
   if(pinStep===first){ pinFirst=p; pinStep++; drawPin(); return; }
   if(p!==pinFirst){ pinStep=first; pinFirst=''; pinWrong('Пароли не совпали. Попробуйте ещё раз'); return; }
   await savePin(p); closePin(); drawPinBtn(); toast(mode==='set'?'Пароль включён':'Пароль изменён');
+  if(mode==='set'&&await bioCheck()&&!bioOn()){ drawBio(); $('pscrim').hidden=false; }
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){ hiddenAt=Date.now(); return; }
@@ -1179,6 +1389,8 @@ $('tExp').onclick=()=>{sType='exp';sCat=EXP[0][0];drawSheet()}; $('tInc').onclic
 $('close').onclick=closeSheet;
 $('tabHome').onclick=()=>showTab('home'); $('tabReport').onclick=()=>showTab('report');
 $('rPrev').onclick=()=>{rYear--;drawReport()}; $('rNext').onclick=()=>{rYear++;drawReport()};
+$('sameType').onclick=e=>{const b=e.target.closest('button');if(b){sameType=b.dataset.t;sameOpen=null;sameAll=false;drawSame()}};
+$('sameScope').onclick=e=>{const b=e.target.closest('button');if(b){sameScope=b.dataset.s;sameOpen=null;sameAll=false;drawSame()}};
 $('xYear').onclick=()=>exportCSV(false); $('xAll').onclick=()=>exportCSV(true); $('tabCats').onclick=()=>showTab('cats');
 $('cscrim').onclick=e=>{if(e.target===$('cscrim'))leaveEditor()};
 $('cAddExp').onclick=()=>openCatEditor('exp',null,'list'); $('cAddInc').onclick=()=>openCatEditor('inc',null,'list'); $('ceCancel').onclick=leaveEditor; $('ceClose').onclick=leaveEditor; $('ceSave').onclick=saveCatEditor;
@@ -1198,7 +1410,9 @@ $('akA').onclick=()=>{if(aKind!=='a'){aKind='a';aGroup=A_GROUPS[0][0];drawAssetE
 $('aClose').onclick=()=>$('ascrim').hidden=true; $('ascrim').onclick=e=>{if(e.target===$('ascrim'))$('ascrim').hidden=true};
 $('aSave').onclick=saveAsset; $('aDel').onclick=delAsset;
 ['aName','aAmt','aPay'].forEach(id=>$(id).onkeydown=e=>{if(e.key==='Enter')saveAsset()});
-$('pinBtn').onclick=()=>{ if(pinOn()) $('pscrim').hidden=false; else openPin('set'); };
+$('pinBtn').onclick=()=>{ if(pinOn()){ drawBio(); $('pscrim').hidden=false; } else openPin('set'); };
+$('pBio').onclick=()=>{ bioOn()?bioDisable():bioEnable(); };
+$('lBio').onclick=bioUnlock;
 $('pClose').onclick=()=>$('pscrim').hidden=true; $('pscrim').onclick=e=>{if(e.target===$('pscrim'))$('pscrim').hidden=true};
 $('pChange').onclick=()=>{$('pscrim').hidden=true;openPin('change')}; $('pOff').onclick=()=>{$('pscrim').hidden=true;openPin('off')};
 $('lPad').onclick=e=>{const b=e.target.closest('button');if(b)pinKey(b.dataset.k||b.textContent)};
@@ -1210,6 +1424,7 @@ document.addEventListener('keydown',e=>{
   if($('scrim').hidden||!$('cscrim').hidden) return;
   if(e.target.tagName==='INPUT') { if(e.key==='Enter') submit(); return; }
   if(/^\d$/.test(e.key)) key(e.key); else if(e.key===','||e.key==='.') key('dot');
+  else if(e.key==='+') key('+'); else if(e.key==='-') key('−'); else if(e.key==='*') key('×'); else if(e.key==='/') key('÷'); else if(e.key==='=') submit();
   else if(e.key==='Backspace') key('back'); else if(e.key==='Enter') submit(); else if(e.key==='Escape') closeSheet();
 });
 render();
