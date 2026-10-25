@@ -383,11 +383,11 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
     <div id="rTop" class="rtop"></div>
   </section>
   <section class="rcard">
-    <h2>По названиям</h2>
-    <div class="seg sscope" id="sameType"><button class="s" data-t="both" aria-pressed="true">Доход и расход</button><button class="e" data-t="exp" aria-pressed="false">Расходы</button><button class="i" data-t="inc" aria-pressed="false">Доходы</button></div>
+    <h2>Анализ по категориям</h2>
+    <div class="seg sscope" id="sameType"><button class="s" data-t="both" aria-pressed="true">По категориям</button><button class="e" data-t="exp" aria-pressed="false">Расходы</button><button class="i" data-t="inc" aria-pressed="false">Доходы</button></div>
     <div class="seg sscope" id="sameScope"><button class="s" data-s="year" aria-pressed="true">За этот год</button><button class="s" data-s="all" aria-pressed="false">За всё время</button></div>
     <div id="rSame" class="slist"></div>
-    <p class="note" style="text-align:left;margin:0">«Доход и расход» — названия, которые есть и в расходах, и в доходах (категория или комментарий, например «Урихтау»): сколько пришло, сколько ушло и что осталось. «Расходы» и «Доходы» — повторяющиеся записи с одинаковым комментарием. Нажмите на строку — откроется подробный анализ.</p>
+    <p class="note" style="text-align:left;margin:0">«По категориям» — отчёт по каждой категории. Если категория с таким же названием есть и в расходах, и в доходах (например «Қонақ»), они считаются вместе: сколько пришло, сколько ушло и что осталось. «Расходы» и «Доходы» — повторяющиеся записи с одинаковым комментарием. Нажмите на строку — откроется подробный анализ.</p>
   </section>
   <section class="rcard">
     <h2>Выгрузка в Excel</h2>
@@ -1034,17 +1034,17 @@ function sameMonths(list){
   const v=cols.map(c=>list.filter(t=>t.date.startsWith(c)).reduce((a,t)=>a+t.amount,0));
   return {cols,v};
 }
-function sameChart(list){
+function sameChart(list,ty=sameType){
   const {cols,v}=sameMonths(list); const max=Math.max(...v,0); if(!max) return '';
-  const W=320,H=96,B=16,T=12,cw=W/12,bw=Math.min(14,cw*.6),col=sameType==='exp'?'var(--exp)':'var(--inc)';
+  const W=320,H=96,B=16,T=12,cw=W/12,bw=Math.min(14,cw*.6),col=ty==='exp'?'var(--exp)':'var(--inc)';
   let g=''; const mi=v.lastIndexOf(max);
   v.forEach((x,i)=>{const cx=cw*i+cw/2, h=x?Math.max((H-B-T)*x/max,2):0;
     if(x) g+=`<rect x="${cx-bw/2}" y="${H-B-h}" width="${bw}" height="${h}" rx="2" fill="${col}"><title>${MON[+cols[i].slice(5)-1]}: ${money(x)}</title></rect>`+(i===mi?`<text x="${cx}" y="${H-B-h-3}" text-anchor="middle">${short(x)}</text>`:'');
     g+=`<text x="${cx}" y="${H-4}" text-anchor="middle">${MONs[+cols[i].slice(5)-1]}</text>`;});
   return `<div class="chartbox"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Суммы по месяцам">${g}</svg></div>`;
 }
-function sameInsights(G,total){
-  const L=G.list, n=L.length, isExp=sameType==='exp', an=[];
+function sameInsights(G,total,ty=sameType){
+  const L=G.list, n=L.length, isExp=ty==='exp', an=[];
   const row=(c,t,v,p)=>an.push(`<div class="an"><span class="dot ${c}"></span><div><b>${esc(t)}<span>${esc(v)}</span></b><p>${esc(p)}</p></div></div>`);
   const avg=G.sum/n;
   // frequency and yearly projection
@@ -1078,10 +1078,10 @@ function sameInsights(G,total){
   }
   // share
   if(total>0) row(G.sum/total>=.2&&isExp?'y':'n',isExp?'Доля от всех расходов':'Доля от всех доходов',pct(G.sum/total),
-    isExp?(G.sum/total>=.2?'Это одна из главных статей расходов — на ней проще всего сэкономить.':'Среди расходов с комментарием.'):'Среди доходов с комментарием.');
+    isExp?(G.sum/total>=.2?'Это одна из главных статей расходов — на ней проще всего сэкономить.':G.catMode?'От всех расходов за период.':'Среди расходов с комментарием.'):(G.catMode?'От всех доходов за период.':'Среди доходов с комментарием.'));
   // categories mismatch
   const cs=Object.keys(G.cats);
-  if(cs.length>1) row('y','Записано в разных категориях',cs.length+' кат.','Одна и та же запись лежит в категориях: '+cs.map(c=>catOf(c,sameType).name).join(', ')+'. Чтобы отчёты были точнее, выбирайте одну.');
+  if(cs.length>1) row('y','Записано в разных категориях',cs.length+' кат.','Одна и та же запись лежит в категориях: '+cs.map(c=>catOf(c,ty).name).join(', ')+'. Чтобы отчёты были точнее, выбирайте одну.');
   return an.join('');
 }
 /* both: same name in incomes and expenses (category name or comment) */
@@ -1089,29 +1089,18 @@ const GENERIC_CATS=['other','other_in'];
 function bothGroups(){
   const src=tx.filter(t=>sameScope==='all'||t.date.startsWith(rYear+'-'));
   const g={};
-  const put=(k,t,orig)=>{ const G=g[k]=g[k]||{k,list:[],ids:new Set(),spell:{}}; if(G.ids.has(t.id)) return; G.ids.add(t.id); G.list.push(t); if(orig) G.spell[orig]=(G.spell[orig]||0)+1; };
-  src.forEach(t=>{
-    const n=normName(t.note); if(n) put(n,t,t.note.trim().replace(/\s+/g,' '));
-    if(!GENERIC_CATS.includes(t.cat)){ const c=catOf(t.cat,t.type), cn=normName(c.name); if(cn) put(cn,t,c.name); }
-  });
-  // names present in both incomes and expenses
-  const cand=Object.values(g).filter(G=>G.list.some(t=>t.type==='inc')&&G.list.some(t=>t.type==='exp')).map(G=>G.k);
-  // a comment that contains the name as words ("Урихтау бензин") belongs to it too
-  src.forEach(t=>{ const n=' '+normName(t.note)+' '; if(n.length<3) return;
-    cand.forEach(k=>{ if(n.includes(' '+k+' ')) put(k,t); }); });
-  const catNames=arr=>new Set(arr.filter(c=>!GENERIC_CATS.includes(c[0])).map(c=>normName(c[1])));
-  const ce=catNames(EXP), ci=catNames(INC);
-  return cand.map(k=>{ const G=g[k];
-    if(ce.has(k)&&ci.has(k)){ // the name is a category on both sides: count exactly those categories, like the Home screen
-      G.byCat=true; G.list=src.filter(t=>!GENERIC_CATS.includes(t.cat)&&normName(catOf(t.cat,t.type).name)===k);
-      G.name=catOf(G.list[0].cat,G.list[0].type).name; }
+  src.forEach(t=>{ const c=catOf(t.cat,t.type);
+    // categories with the same name in expenses and incomes go together; "Другое" stays separate per side
+    const k=GENERIC_CATS.includes(t.cat)?'_'+t.type+'_'+t.cat:normName(c.name)||('_'+t.cat);
+    const G=g[k]=g[k]||{k,list:[],name:c.name,icon:c.icon,color:c.color};
+    G.list.push(t); });
+  return Object.values(g).map(G=>{
     G.list.sort((a,b)=>a.date.localeCompare(b.date)||a.created-b.created);
     G.inc=G.list.filter(t=>t.type==='inc').reduce((a,t)=>a+t.amount,0);
     G.exp=G.list.filter(t=>t.type==='exp').reduce((a,t)=>a+t.amount,0);
-    if(!G.byCat){ G.name=Object.keys(G.spell).sort((a,b)=>G.spell[b]-G.spell[a]||a.length-b.length)[0]||k;
-      G.name=G.name[0].toUpperCase()+G.name.slice(1); }
+    G.both=G.inc>0&&G.exp>0; G.byCat=true;
     return G;
-  }).sort((a,b)=>(b.inc+b.exp)-(a.inc+a.exp));
+  }).sort((a,b)=>(b.both-a.both)||((b.inc+b.exp)-(a.inc+a.exp)));
 }
 function bothChart(list){
   const {cols}=sameMonths([]);
@@ -1150,12 +1139,17 @@ function bothInsights(G){
 }
 function drawBoth(box){
   const out=bothGroups();
-  if(!out.length){ box.innerHTML=`<p class="note" style="text-align:left;margin:0">Пока нет названий, которые есть и в расходах, и в доходах${sameScope==='year'?' за '+rYear+' год':''}. Например, для объекта «Урихтау» пишите «Урихтау» в комментарии и к расходам, и к доходам — или создайте категорию «Урихтау» и там, и там.</p>`; return; }
-  const shown=sameAll?out:out.slice(0,12); box.innerHTML='';
-  shown.forEach(G=>{
+  if(!out.length){ box.innerHTML=`<p class="note" style="text-align:left;margin:0">Пока нет записей${sameScope==='year'?' за '+rYear+' год':''}.</p>`; return; }
+  const totE=out.reduce((a,G)=>a+G.exp,0), totI=out.reduce((a,G)=>a+G.inc,0);
+  const nb=out.filter(G=>G.both).length;
+  box.innerHTML=nb?'':`<p class="note" style="text-align:left;margin:0">Совпадающих категорий в расходах и доходах пока нет. Чтобы видеть прибыль по объекту, создайте категорию с одинаковым названием и там, и там — например «Урихтау».</p>`;
+  const shown=sameAll?out:out.slice(0,15);
+  shown.forEach((G,idx)=>{
+    if(G.both===false&&idx===nb&&nb) box.insertAdjacentHTML('beforeend','<div class="lbl" style="margin:8px 0 0">Остальные категории</div>');
+    if(!G.both){ drawOneCat(box,G,G.exp?'exp':'inc',G.exp?totE:totI); return; }
     const net=G.inc-G.exp, open=sameOpen===G.k, n=G.list.length;
     const it=document.createElement('div'); it.className='sitem';
-    it.innerHTML=`<button class="srow" style="--c:${net>=0?'var(--inc)':'var(--exp)'}" aria-expanded="${open}"><span class="ic" style="color:#fff;font-weight:700">${net>=0?'＋':'−'}</span><b>${esc(G.name)}<small>доход ${esc(money(G.inc))} · расход ${esc(money(G.exp))}</small></b><span class="v num ${net<0?'amt-exp':'amt-inc'}">${esc(money(net,true))}<small>итог</small></span></button>`;
+    it.innerHTML=`<button class="srow" style="--c:${esc(G.color)}" aria-expanded="${open}"><span class="ic">${esc(G.icon)}</span><b>${esc(G.name)}<small>доход ${esc(money(G.inc))} · расход ${esc(money(G.exp))}</small></b><span class="v num ${net<0?'amt-exp':'amt-inc'}">${esc(money(net,true))}<small>итог</small></span></button>`;
     if(open){
       const all=G.list.slice().reverse().map(t=>`<div><span>${esc(fmtD(t.date))} · ${esc(catOf(t.cat,t.type).name)}${t.note?' · '+esc(t.note):''}</span><b class="num ${t.type==='exp'?'amt-exp':'amt-inc'}">${esc(money(t.type==='exp'?-t.amount:t.amount,true))}</b></div>`).join('');
       const brk=['inc','exp'].map(ty=>{ const by={}; G.list.filter(t=>t.type===ty).forEach(t=>{const k=t.cat;by[k]=by[k]||{s:0,n:0};by[k].s+=t.amount;by[k].n++});
@@ -1173,7 +1167,26 @@ function drawBoth(box){
     it.querySelector('.srow').onclick=()=>{sameOpen=open?null:G.k;drawSame();};
     box.appendChild(it);
   });
-  if(out.length>12){ const b=document.createElement('button'); b.className='ghost smore'; b.textContent=sameAll?'Свернуть':'Показать все ('+out.length+')'; b.onclick=()=>{sameAll=!sameAll;drawSame()}; box.appendChild(b); }
+  if(out.length>15){ const b=document.createElement('button'); b.className='ghost smore'; b.textContent=sameAll?'Свернуть':'Показать все категории ('+out.length+')'; b.onclick=()=>{sameAll=!sameAll;drawSame()}; box.appendChild(b); }
+}
+function drawOneCat(box,G,ty,total){
+  const L=G.list, n=L.length, sum=ty==='exp'?G.exp:G.inc, avg=sum/n, open=sameOpen===G.k;
+  const it=document.createElement('div'); it.className='sitem';
+  it.innerHTML=`<button class="srow" style="--c:${esc(G.color)}" aria-expanded="${open}"><span class="ic">${esc(G.icon)}</span><b>${esc(G.name)}<small>${ty==='exp'?'расход':'доход'} · ${n} ${plural(n,'запись','записи','записей')} · ${total?pct(sum/total):''} от всех</small></b><span class="v num ${ty==='exp'?'amt-exp':'amt-inc'}">${esc(money(sum))}<small>в ср. ${esc(money(Math.round(avg)))}</small></span></button>`;
+  if(open){
+    const amts=L.map(t=>t.amount);
+    const all=L.slice().reverse().map(t=>`<div><span>${esc(fmtD(t.date))}${t.note?' · '+esc(t.note):''}</span><b class="num ${ty==='exp'?'amt-exp':'amt-inc'}">${esc(money(t.amount))}</b></div>`).join('');
+    it.insertAdjacentHTML('beforeend',`<div class="sdet">
+      <div class="sstats"><div><span>Всего</span><b>${esc(money(sum))}</b></div><div><span>Записей</span><b>${n}</b></div><div><span>В среднем</span><b>${esc(money(Math.round(avg)))}</b></div>
+      <div><span>Меньше всего</span><b>${esc(money(Math.min(...amts)))}</b></div><div><span>Больше всего</span><b>${esc(money(Math.max(...amts)))}</b></div><div><span>С</span><b>${esc(fmtD(L[0].date))}</b></div></div>
+      ${sameChart(L,ty)}
+      <div class="alist">${sameInsights({list:L,sum,cats:{},catMode:true},total,ty)}</div>
+      <p class="note" style="text-align:left;margin:0">Все записи категории «${esc(G.name)}» (${ty==='exp'?'расходы':'доходы'}), ${sameScope==='year'?'за '+rYear+' год':'за всё время'}.</p>
+      <div><div class="lbl" style="margin-bottom:4px">Все записи (${n})</div><div class="slast sall">${all}</div></div>
+    </div>`);
+  }
+  it.querySelector('.srow').onclick=()=>{sameOpen=open?null:G.k;drawSame();};
+  box.appendChild(it);
 }
 function drawSame(){
   document.querySelectorAll('#sameType button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===sameType));
