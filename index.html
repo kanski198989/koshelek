@@ -281,6 +281,8 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .sstats span{display:block;font-size:11px;color:var(--muted)}
 .sstats b{display:block;font-size:clamp(11px,3.4vw,14px);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .slast b{white-space:nowrap}
+.sall{max-height:320px;overflow-y:auto}
+.slast span{min-width:0;overflow-wrap:anywhere}
 .slast{display:flex;flex-direction:column}
 .slast div{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)}
 .slast div:last-child{border-bottom:0}
@@ -1097,12 +1099,17 @@ function bothGroups(){
   // a comment that contains the name as words ("Урихтау бензин") belongs to it too
   src.forEach(t=>{ const n=' '+normName(t.note)+' '; if(n.length<3) return;
     cand.forEach(k=>{ if(n.includes(' '+k+' ')) put(k,t); }); });
+  const catNames=arr=>new Set(arr.filter(c=>!GENERIC_CATS.includes(c[0])).map(c=>normName(c[1])));
+  const ce=catNames(EXP), ci=catNames(INC);
   return cand.map(k=>{ const G=g[k];
+    if(ce.has(k)&&ci.has(k)){ // the name is a category on both sides: count exactly those categories, like the Home screen
+      G.byCat=true; G.list=src.filter(t=>!GENERIC_CATS.includes(t.cat)&&normName(catOf(t.cat,t.type).name)===k);
+      G.name=catOf(G.list[0].cat,G.list[0].type).name; }
     G.list.sort((a,b)=>a.date.localeCompare(b.date)||a.created-b.created);
     G.inc=G.list.filter(t=>t.type==='inc').reduce((a,t)=>a+t.amount,0);
     G.exp=G.list.filter(t=>t.type==='exp').reduce((a,t)=>a+t.amount,0);
-    G.name=Object.keys(G.spell).sort((a,b)=>G.spell[b]-G.spell[a]||a.length-b.length)[0]||k;
-    G.name=G.name[0].toUpperCase()+G.name.slice(1);
+    if(!G.byCat){ G.name=Object.keys(G.spell).sort((a,b)=>G.spell[b]-G.spell[a]||a.length-b.length)[0]||k;
+      G.name=G.name[0].toUpperCase()+G.name.slice(1); }
     return G;
   }).sort((a,b)=>(b.inc+b.exp)-(a.inc+a.exp));
 }
@@ -1150,13 +1157,17 @@ function drawBoth(box){
     const it=document.createElement('div'); it.className='sitem';
     it.innerHTML=`<button class="srow" style="--c:${net>=0?'var(--inc)':'var(--exp)'}" aria-expanded="${open}"><span class="ic" style="color:#fff;font-weight:700">${net>=0?'＋':'−'}</span><b>${esc(G.name)}<small>доход ${esc(money(G.inc))} · расход ${esc(money(G.exp))}</small></b><span class="v num ${net<0?'amt-exp':'amt-inc'}">${esc(money(net,true))}<small>итог</small></span></button>`;
     if(open){
-      const last=G.list.slice(-6).reverse().map(t=>`<div><span>${esc(fmtD(t.date))} · ${esc(t.note||catOf(t.cat,t.type).name)}</span><b class="num ${t.type==='exp'?'amt-exp':'amt-inc'}">${esc(money(t.type==='exp'?-t.amount:t.amount,true))}</b></div>`).join('');
+      const all=G.list.slice().reverse().map(t=>`<div><span>${esc(fmtD(t.date))} · ${esc(catOf(t.cat,t.type).name)}${t.note?' · '+esc(t.note):''}</span><b class="num ${t.type==='exp'?'amt-exp':'amt-inc'}">${esc(money(t.type==='exp'?-t.amount:t.amount,true))}</b></div>`).join('');
+      const brk=['inc','exp'].map(ty=>{ const by={}; G.list.filter(t=>t.type===ty).forEach(t=>{const k=t.cat;by[k]=by[k]||{s:0,n:0};by[k].s+=t.amount;by[k].n++});
+        return Object.keys(by).sort((a,b)=>by[b].s-by[a].s).map(c=>`<div><span>${ty==='inc'?'Доход':'Расход'} · ${esc(catOf(c,ty).name)} (${by[c].n})</span><b class="num ${ty==='exp'?'amt-exp':'amt-inc'}">${esc(money(by[c].s))}</b></div>`).join(''); }).join('');
+      const how=G.byCat?`Считаются все записи категорий «${G.name}» в расходах и доходах`:`Считаются записи, где в комментарии или категории есть «${G.name}»`;
       it.insertAdjacentHTML('beforeend',`<div class="sdet">
         <div class="sstats"><div><span>Доход</span><b class="amt-inc">${esc(money(G.inc))}</b></div><div><span>Расход</span><b class="amt-exp">${esc(money(G.exp))}</b></div><div><span>Итог</span><b class="${net<0?'amt-exp':'amt-inc'}">${esc(money(net,true))}</b></div>
         <div><span>Остаётся с дохода</span><b>${pct(net/G.inc)}</b></div><div><span>Записей</span><b>${n}</b></div><div><span>С</span><b>${esc(fmtD(G.list[0].date))}</b></div></div>
         ${bothChart(G.list)}
         <div class="alist">${bothInsights(G)}</div>
-        <div><div class="lbl" style="margin-bottom:4px">Последние записи</div><div class="slast">${last}</div></div>
+        <div><div class="lbl" style="margin-bottom:4px">Из чего сложилось</div><p class="note" style="text-align:left;margin:0 0 4px">${esc(how)}, ${sameScope==='year'?'за '+rYear+' год':'за всё время'}.</p><div class="slast">${brk}</div></div>
+        <div><div class="lbl" style="margin-bottom:4px">Все записи (${n})</div><div class="slast sall">${all}</div></div>
       </div>`);
     }
     it.querySelector('.srow').onclick=()=>{sameOpen=open?null:G.k;drawSame();};
