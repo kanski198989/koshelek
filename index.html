@@ -287,6 +287,8 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .slast span{color:var(--muted)}
 .smore{align-self:center}
 @media (max-width:360px){.sstats{grid-template-columns:repeat(2,1fr)}}
+.xtext{font:12px/1.4 ui-monospace,monospace;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%;height:150px;resize:vertical;word-break:break-all}
+#xscrim{z-index:26}
 /* lock */
 .lock{position:fixed;inset:0;z-index:50;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px 16px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto}
 .lock.show,.locked .lock{display:flex}
@@ -342,6 +344,8 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
     <button class="ghost" id="exportBtn">Сохранить резервную копию</button>
     <label class="ghost" for="importFile" style="cursor:pointer">Восстановить из копии</label>
     <input type="file" id="importFile" accept="application/json,.json" hidden>
+    <button class="ghost" id="copyBtn">Скопировать данные</button>
+    <button class="ghost" id="pasteBtn">Вставить данные</button>
   </div>
   <p class="note">Данные хранятся только на этом телефоне. Время от времени сохраняйте резервную копию.</p>
 </div>
@@ -520,6 +524,14 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
   <button class="lbio" id="lBio" hidden aria-label="Войти по отпечатку или лицу"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 11v3.5a6 6 0 0 1-1.2 3.6"/><path d="M8.5 10.5a3.5 3.5 0 0 1 7 0v2.8c0 1.6-.3 3.1-.9 4.5"/><path d="M5.6 15.5c.3-1.2.4-2.4.4-3.6v-1.4a6 6 0 0 1 10.4-4.1"/><path d="M18 9.2c.3.8.5 1.7.5 2.6v1.5c0 1-.1 2-.3 3"/><path d="M3.8 12.4V10.5A8.2 8.2 0 0 1 16 3.3"/></svg><span>Отпечаток / лицо</span></button>
   <div class="lfoot" id="lFoot"></div>
 </div>
+<div class="scrim" id="xscrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="xTitle">
+    <div class="top"><b id="xTitle" style="font-size:17px"></b><button class="x" id="xClose" aria-label="Закрыть">×</button></div>
+    <p class="note" id="xNote" style="text-align:left;margin:0"></p>
+    <textarea id="xText" class="xtext" spellcheck="false" autocomplete="off" aria-label="Данные"></textarea>
+    <button class="vsave" id="xGo"></button>
+  </div>
+</div>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -658,8 +670,12 @@ function exportData(){
 }
 function importData(file){
   const r=new FileReader();
-  r.onload=()=>{try{
-    const d=JSON.parse(r.result); if(!d||!Array.isArray(d.tx)) throw 0;
+  r.onload=()=>importText(r.result);
+  r.readAsText(file);
+}
+function importText(text){
+  try{
+    const d=JSON.parse(String(text).trim()); if(!d||!Array.isArray(d.tx)) throw 0;
     const ok=d.tx.filter(t=>t&&t.id&&(t.type==='exp'||t.type==='inc')&&typeof t.amount==='number'&&/^\d{4}-\d\d-\d\d$/.test(t.date));
     const okCat=c=>Array.isArray(c)&&c.length===4&&c.every(x=>typeof x==='string');
     [['catsExp',EXP],['catsInc',INC]].forEach(([k,arr])=>{ if(Array.isArray(d[k])) d[k].filter(okCat).forEach(c=>{ if(!arr.some(x=>x[0]===c[0])) arr.push(c.slice()) }) });
@@ -671,8 +687,36 @@ function importData(file){
     if(Array.isArray(d.assets)){ const aid=new Set(assets.map(a=>a.id)); d.assets.forEach(a=>{ if(a&&a.id&&!aid.has(a.id)&&(a.kind==='a'||a.kind==='l')&&typeof a.amount==='number'){ assets.push({id:String(a.id),kind:a.kind,g:String(a.g||''),name:String(a.name||''),amount:a.amount,pay:+a.pay||0,upd:+a.upd||Date.now()}); aAdd++; } }); store.set('assets',assets); }
     if(d.nwHist&&typeof d.nwHist==='object') Object.keys(d.nwHist).forEach(k=>{ const v=d.nwHist[k]; if(/^\d{4}-\d\d$/.test(k)&&!nwHist[k]&&v&&typeof v.a==='number'&&typeof v.l==='number') nwHist[k]={a:v.a,l:v.l}; }); store.set('nwHist',nwHist);
     render(); toast('Восстановлено: записей '+add.length+(nAdd?', заметок '+nAdd:'')+(aAdd?', активов и долгов '+aAdd:''));
-  }catch(e){toast('Этот файл не похож на резервную копию Кошелька')}};
-  r.readAsText(file);
+    return true;
+  }catch(e){toast('Это не похоже на данные Кошелька'); return false;}
+}
+/* transfer through the clipboard (when files can't be saved) */
+const backupJSON=()=>JSON.stringify({app:'koshelek',version:3,exported:new Date().toISOString(),currency:cur,catsExp:EXP,catsInc:INC,tx,notes,assets,nwHist});
+let xMode='';
+function openTransfer(mode){
+  xMode=mode; const t=$('xText');
+  if(mode==='copy'){
+    $('xTitle').textContent='Скопировать данные';
+    $('xNote').textContent='Здесь все ваши записи, категории, заметки, активы и долги. Нажмите «Скопировать», затем в новом приложении — «Вставить данные».';
+    t.value=backupJSON(); t.readOnly=true; $('xGo').textContent='Скопировать';
+  } else {
+    $('xTitle').textContent='Вставить данные';
+    $('xNote').textContent='Нажмите в поле и подержите палец → «Вставить». Затем нажмите «Восстановить». Записи, которые уже есть, не задвоятся.';
+    t.value=''; t.readOnly=false; $('xGo').textContent='Восстановить';
+  }
+  $('xscrim').hidden=false;
+}
+async function transferGo(){
+  const t=$('xText');
+  if(xMode==='copy'){
+    let ok=false;
+    try{ await navigator.clipboard.writeText(t.value); ok=true; }catch(e){}
+    if(!ok){ try{ t.focus(); t.select(); t.setSelectionRange(0,t.value.length); ok=document.execCommand('copy'); }catch(e){} }
+    toast(ok?'Скопировано. Теперь откройте новое приложение → «Вставить данные»':'Выделите текст в поле, подержав на нём палец, и нажмите «Копировать»');
+    return;
+  }
+  if(!t.value.trim()){ toast('Сначала вставьте данные в поле'); return; }
+  if(importText(t.value)) $('xscrim').hidden=true;
 }
 
 /* ---------- add sheet ---------- */
@@ -1527,6 +1571,8 @@ drawPinBtn();
 if(pinOn()){ document.documentElement.classList.add('locked'); openPin('unlock'); } else document.documentElement.classList.remove('locked');
 $('syncNote').textContent='Учёт расходов и доходов';
 $('exportBtn').onclick=exportData;
+$('copyBtn').onclick=()=>openTransfer('copy'); $('pasteBtn').onclick=()=>openTransfer('paste');
+$('xGo').onclick=transferGo; $('xClose').onclick=()=>$('xscrim').hidden=true; $('xscrim').onclick=e=>{if(e.target===$('xscrim'))$('xscrim').hidden=true};
 $('importFile').onchange=e=>{const f=e.target.files[0]; if(f) importData(f); e.target.value=''};
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('install').hidden=false});
