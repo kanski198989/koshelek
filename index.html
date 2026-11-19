@@ -248,6 +248,17 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
 .arow b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .arow b small{display:block;font-weight:400;color:var(--muted);font-size:12px}
 .arow .v{text-align:right;font-weight:600} .arow .v small{display:block;color:var(--muted);font-weight:400;font-size:12px}
+.repay{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:12px}
+.repay h3{margin:0;font-size:15px}
+.rrow{display:grid;grid-template-columns:1fr auto;gap:8px}
+.rrow .ghost{font-size:14px;padding:0 14px}
+.repay select{font-size:15px;padding:10px 12px}
+.rhist{display:flex;flex-direction:column;gap:6px}
+.rhist div{display:grid;grid-template-columns:1fr auto 74px;gap:8px;font-size:13px;color:var(--muted);align-items:center}
+.rhist div>button{justify-self:end}
+.rhist b{color:var(--fg);font-weight:600}
+.rhist button{font-size:12px;padding:4px 8px}
+.arow.done{opacity:.6}
 .stack{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--surface-2)}
 .stack i{display:block;height:100%}
 .slegend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted);margin-top:6px}
@@ -423,12 +434,16 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
     <div class="chead"><h2>Пассивы — долги</h2><button class="cadd e" id="aAddL">＋ Добавить</button></div>
     <div class="clist" id="aListL"></div>
   </section>
+  <section class="csec" id="aClosedSec" hidden>
+    <div class="chead"><h2>Закрытые</h2></div>
+    <div class="clist" id="aListC"></div>
+  </section>
   <section class="rcard" id="aStructCard"><h2>Структура</h2><div id="aStruct" style="display:flex;flex-direction:column;gap:14px"></div></section>
   <section class="rcard">
     <div class="rhead"><h2>Капитал по месяцам</h2><div class="legend"><span><i style="background:var(--inc)"></i>Активы</span><span><i style="background:var(--exp)"></i>Долги</span><span><i style="background:var(--accent)"></i>Капитал</span></div></div>
     <div class="chartbox" id="aChart"></div>
   </section>
-  <p class="note">Обновляйте суммы, когда они меняются (остаток на карте, долг по кредиту). Капитал запоминается каждый месяц.</p>
+  <p class="note">Обновляйте суммы, когда они меняются (остаток на карте, долг по кредиту). Долг закрыли или вам вернули деньги — откройте его и нажмите «Погасить». Капитал запоминается каждый месяц.</p>
 </div>
 
 <div class="app" id="pgNotes" hidden>
@@ -515,6 +530,17 @@ select{font:inherit;background:var(--surface);color:var(--fg);border:1px solid v
     <div class="field"><label class="lbl" for="aName">Название</label><input id="aName" maxlength="40" placeholder="Например: Kaspi Gold"></div>
     <div class="field"><label class="lbl" for="aAmt" id="aAmtL">Сумма</label><input id="aAmt" inputmode="decimal" autocomplete="off" placeholder="0"></div>
     <div class="field" id="aPayF"><label class="lbl" for="aPay">Платёж в месяц (необязательно)</label><input id="aPay" inputmode="decimal" autocomplete="off" placeholder="0"></div>
+    <div class="repay" id="aRepay" hidden>
+      <h3 id="aRepT">Погасить долг</h3>
+      <p class="note" id="aClosedTxt" style="text-align:left;margin:0" hidden></p>
+      <div id="aRepForm" style="display:flex;flex-direction:column;gap:10px">
+        <div class="field"><label class="lbl" for="aRepAmt" id="aRepAmtL">Сколько отдали</label><div class="rrow"><input id="aRepAmt" inputmode="decimal" autocomplete="off" placeholder="0"><button class="ghost" id="aRepAll">Всё</button></div></div>
+        <div class="field"><label class="lbl" for="aRepAcc" id="aRepAccL">С какого счёта</label><select id="aRepAcc"></select></div>
+        <div class="err" id="aRepErr" role="alert"></div>
+        <button class="vsave" id="aRepGo">Погасить</button>
+      </div>
+      <div class="rhist" id="aRepHist"></div>
+    </div>
     <div class="err" id="aErr" role="alert"></div>
     <div class="two"><button class="cancel" id="aDel">Отмена</button><button class="ok" id="aSave">Сохранить</button></div>
   </div>
@@ -720,7 +746,7 @@ function importText(text){
     tx=tx.concat(add); persistLocal();
     let nAdd=0, aAdd=0;
     if(Array.isArray(d.notes)){ const nid=new Set(notes.map(n=>n.id)); d.notes.forEach(n=>{ if(n&&n.id&&!nid.has(n.id)&&typeof (n.text??'')==='string'){ notes.push({id:String(n.id),title:String(n.title||''),text:String(n.text||''),color:/^#[0-9a-f]{6}$/i.test(n.color||'')?n.color:'',pin:!!n.pin,created:+n.created||Date.now(),upd:+n.upd||Date.now()}); nAdd++; } }); store.set('notes',notes); }
-    if(Array.isArray(d.assets)){ const aid=new Set(assets.map(a=>a.id)); d.assets.forEach(a=>{ if(a&&a.id&&!aid.has(a.id)&&(a.kind==='a'||a.kind==='l')&&typeof a.amount==='number'){ assets.push({id:String(a.id),kind:a.kind,g:String(a.g||''),name:String(a.name||''),amount:a.amount,pay:+a.pay||0,upd:+a.upd||Date.now()}); aAdd++; } }); store.set('assets',assets); }
+    if(Array.isArray(d.assets)){ const aid=new Set(assets.map(a=>a.id)); d.assets.forEach(a=>{ if(a&&a.id&&!aid.has(a.id)&&(a.kind==='a'||a.kind==='l')&&typeof a.amount==='number'){ assets.push({id:String(a.id),kind:a.kind,g:String(a.g||''),name:String(a.name||''),amount:a.amount,pay:+a.pay||0,upd:+a.upd||Date.now(),closed:+a.closed||0,hist:Array.isArray(a.hist)?a.hist.filter(h=>h&&typeof h.amt==='number').map(h=>({t:String(h.t||''),amt:h.amt,acc:String(h.acc||'')})):[]}); aAdd++; } }); store.set('assets',assets); }
     if(d.nwHist&&typeof d.nwHist==='object') Object.keys(d.nwHist).forEach(k=>{ const v=d.nwHist[k]; if(/^\d{4}-\d\d$/.test(k)&&!nwHist[k]&&v&&typeof v.a==='number'&&typeof v.l==='number') nwHist[k]={a:v.a,l:v.l}; }); store.set('nwHist',nwHist);
     render(); toast('Восстановлено: записей '+add.length+(nAdd?', заметок '+nAdd:'')+(aAdd?', активов и долгов '+aAdd:''));
     return true;
@@ -1526,7 +1552,11 @@ let aKind='a', aGroup='cash', aEditId=null, aDelConf=false;
 const groupsOf=k=>k==='a'?A_GROUPS:L_GROUPS;
 const grpOf=(k,g)=>groupsOf(k).find(x=>x[0]===g)||groupsOf(k).slice(-1)[0];
 const parseNum=v=>{const n=parseFloat(String(v).replace(/[\s ]/g,'').replace(',','.'));return isFinite(n)?n:NaN};
-const sumK=k=>assets.filter(x=>x.kind===k).reduce((s,x)=>s+x.amount,0);
+const live=()=>assets.filter(x=>!x.closed);
+const sumK=k=>live().filter(x=>x.kind===k).reduce((s,x)=>s+x.amount,0);
+const canRepay=(k,g)=>k==='l'||g==='receivable';
+const paidOf=x=>(x.hist||[]).reduce((s,h)=>s+h.amt,0);
+const r2=v=>Math.round(v*100)/100;
 function saveAssets(){
   store.set('assets',assets);
   nwHist[iso(new Date()).slice(0,7)]={a:sumK('a'),l:sumK('l')}; store.set('nwHist',nwHist);
@@ -1541,16 +1571,17 @@ function monthAvg(type){
 const pct=v=>Math.round(v*100)+'%';
 function drawAssets(){
   const A=sumK('a'), L=sumK('l'), NW=A-L;
-  const liquid=assets.filter(x=>x.kind==='a'&&grpOf('a',x.g)[4]).reduce((s,x)=>s+x.amount,0);
-  const shortL=assets.filter(x=>x.kind==='l'&&grpOf('l',x.g)[4]).reduce((s,x)=>s+x.amount,0);
-  const pays=assets.filter(x=>x.kind==='l').reduce((s,x)=>s+(x.pay||0),0);
+  const LV=live();
+  const liquid=LV.filter(x=>x.kind==='a'&&grpOf('a',x.g)[4]).reduce((s,x)=>s+x.amount,0);
+  const shortL=LV.filter(x=>x.kind==='l'&&grpOf('l',x.g)[4]).reduce((s,x)=>s+x.amount,0);
+  const pays=LV.filter(x=>x.kind==='l').reduce((s,x)=>s+(x.pay||0),0);
   const avgExp=monthAvg('exp'), avgInc=monthAvg('inc');
   $('aKpis').innerHTML=`<div class="kpi"><span>Активы</span><b class="amt-inc">${esc(money(A))}</b></div><div class="kpi"><span>Пассивы (долги)</span><b class="amt-exp">${esc(money(L))}</b></div>
     <div class="kpi"><span>Капитал = активы − долги</span><b class="${NW<0?'amt-exp':'amt-inc'}">${esc(money(NW,true))}</b></div><div class="kpi"><span>Долговая нагрузка</span><b>${A?pct(L/A):(L?'—':'0%')}</b></div>`;
 
   // analysis
   const an=[]; const row=(c,t,v,p)=>an.push(`<div class="an"><span class="dot ${c}"></span><div><b>${esc(t)}<span>${esc(v)}</span></b><p>${esc(p)}</p></div></div>`);
-  if(!assets.length){
+  if(!LV.length&&!assets.length){
     row('n','Начните с того, что у вас есть','','Добавьте деньги на картах, наличные, машину, технику — и долги: кредиты, рассрочки, кто кому должен. Я посчитаю капитал и покажу, всё ли в порядке.');
   } else {
     if(NW>0) row('g','Капитал положительный',money(NW,true),'Имущества больше, чем долгов.');
@@ -1573,10 +1604,33 @@ function drawAssets(){
     if(shortL>0){ const c=liquid/shortL; row(c>=1?'g':c>=.5?'y':'r','Срочные долги',pct(c)+' покрыто', c>=1?'Свободных денег хватит, чтобы закрыть срочные долги (кредитка, рассрочка, долги людям и поставщикам).':`Свободных денег не хватит, чтобы закрыть срочные долги: не хватает ${money(shortL-liquid)}.`); }
     if(A>0){ const lq=liquid/A; if(lq<.1) row('y','Живые деньги',pct(lq)+' активов','Почти всё имущество — недвижимость, машина, техника. Если срочно понадобятся деньги, быстро их не достать.'); }
 
-    const card=assets.filter(x=>x.kind==='l'&&x.g==='card').reduce((s,x)=>s+x.amount,0);
-    const big=assets.filter(x=>x.kind==='l').sort((a,b)=>b.amount-a.amount)[0];
+    const card=LV.filter(x=>x.kind==='l'&&x.g==='card').reduce((s,x)=>s+x.amount,0);
+    const big=LV.filter(x=>x.kind==='l').sort((a,b)=>b.amount-a.amount)[0];
     if(card>0) row('n','Совет',' ','Кредитные карты обычно самые дорогие по процентам — гасите их в первую очередь.');
     else if(big) row('n','Самый крупный долг',money(big.amount),(big.name||grpOf('l',big.g)[1])+'. Если есть лишние деньги, досрочное погашение самого дорогого по процентам долга экономит больше всего.');
+
+    // погашения
+    const mk=iso(new Date()).slice(0,7), yk=mk.slice(0,4);
+    const inM=(x)=>(x.hist||[]).filter(h=>h.t.slice(0,7)===mk).reduce((s,h)=>s+h.amt,0);
+    const nm=x=>x.name||grpOf(x.kind,x.g)[1];
+    const paidL=assets.filter(x=>x.kind==='l').reduce((s,x)=>s+inM(x),0);
+    const gotA=assets.filter(x=>x.kind==='a').reduce((s,x)=>s+inM(x),0);
+    const closedM=assets.filter(x=>x.closed&&iso(new Date(x.closed)).slice(0,7)===mk);
+    const cL=closedM.filter(x=>x.kind==='l').map(nm), cA=closedM.filter(x=>x.kind==='a').map(nm);
+    if(paidL>0) row('g','Погашено долгов в этом месяце',money(paidL),cL.length?`Закрыты полностью: ${cL.join(', ')}. Долгов стало меньше — так держать.`:'Долги уменьшились на эту сумму. Так держать.');
+    if(gotA>0) row('g','Вам вернули в этом месяце',money(gotA),cA.length?`Рассчитались полностью: ${cA.join(', ')}.`:'Часть долга вам вернули, остаток ещё ждёте.');
+    const yearClosed=assets.filter(x=>x.closed&&x.kind==='l'&&iso(new Date(x.closed)).slice(0,4)===yk);
+    if(yearClosed.length&&yearClosed.length>cL.length) row('g',`Закрыто долгов за ${yk} год`,String(yearClosed.length),'Всего выплачено по ним '+money(yearClosed.reduce((s,x)=>s+paidOf(x),0))+'.');
+    // темп погашения: ближайший к закрытию
+    const ago=iso(new Date(Date.now()-90*864e5));
+    const eta=LV.filter(x=>canRepay(x.kind,x.g)&&x.amount>0).map(x=>{
+      const recent=(x.hist||[]).filter(h=>h.t>=ago).reduce((s,h)=>s+h.amt,0)/3;
+      const rate=x.kind==='l'&&x.pay>0?x.pay:recent; return rate>0?{x,rate,m:Math.ceil(x.amount/rate)}:null}).filter(Boolean).sort((a,b)=>a.m-b.m);
+    const etaL=eta.find(e=>e.x.kind==='l'), etaA=eta.find(e=>e.x.kind==='a');
+    if(etaL) row('n','Ближе всего к закрытию',nm(etaL.x),`Осталось ${money(etaL.x.amount)} — примерно ${etaL.m} мес. при ${money(Math.round(etaL.rate))} в месяц.`);
+    if(etaA) row('n','Скоро вернут',nm(etaA.x),`Осталось получить ${money(etaA.x.amount)} — при таком темпе примерно ${etaA.m} мес.`);
+    const owed=LV.filter(x=>x.g==='receivable').reduce((s,x)=>s+x.amount,0);
+    if(owed>0&&A>0&&owed/A>=.3) row('y','Вам должны',pct(owed/A)+' активов',`Вам должны ${money(owed)} — это большая часть имущества. Пока не вернули, этими деньгами нельзя пользоваться.`);
 
     const ks=Object.keys(nwHist).sort(); const cm=iso(new Date()).slice(0,7); const prev=ks.filter(k=>k<cm).pop();
     if(prev){ const p=nwHist[prev], dNW=NW-(p.a-p.l); const [py,pm]=prev.split('-');
@@ -1587,19 +1641,27 @@ function drawAssets(){
   // lists
   [['a',$('aListA')],['l',$('aListL')]].forEach(([k,box])=>{
     box.innerHTML='';
-    const items=assets.filter(x=>x.kind===k).sort((a,b)=>b.amount-a.amount);
+    const items=LV.filter(x=>x.kind===k).sort((a,b)=>b.amount-a.amount);
     if(!items.length){ box.innerHTML=`<p class="note" style="text-align:left;margin:0">${k==='a'?'Пока пусто. Например: наличные, карта, машина, оборудование.':'Пока пусто. Например: кредит, рассрочка, долг поставщику.'}</p>`; return; }
     items.forEach(x=>{ const g=grpOf(k,x.g);
       const b=document.createElement('button'); b.className='arow'; b.style.setProperty('--c',g[3]);
       b.innerHTML=`<span class="ic">${esc(g[2])}</span><b></b><span class="v num ${k==='a'?'amt-inc':'amt-exp'}">${esc(money(x.amount))}${k==='l'&&x.pay?`<small>${esc(money(x.pay))}/мес</small>`:''}</span>`;
-      const nm=b.querySelector('b'); nm.textContent=x.name||g[1]; const sm=document.createElement('small'); sm.textContent=g[1]; nm.appendChild(sm);
+      const nm=b.querySelector('b'); nm.textContent=x.name||g[1]; const sm=document.createElement('small'); const pd=paidOf(x);
+      sm.textContent=g[1]+(pd>0?' · '+(k==='l'?'погашено ':'вернули ')+pct(pd/(pd+x.amount)):''); nm.appendChild(sm);
       b.onclick=()=>openAsset(k,x.id); box.appendChild(b); });
   });
+  const cls=assets.filter(x=>x.closed).sort((a,b)=>b.closed-a.closed); $('aClosedSec').hidden=!cls.length;
+  const cb=$('aListC'); cb.innerHTML='';
+  cls.forEach(x=>{ const g=grpOf(x.kind,x.g);
+    const b=document.createElement('button'); b.className='arow done'; b.style.setProperty('--c',g[3]);
+    b.innerHTML=`<span class="ic">✅</span><b></b><span class="v num">${esc(money(paidOf(x)))}<small>${x.kind==='l'?'выплачено':'получено'}</small></span>`;
+    const nm=b.querySelector('b'); nm.textContent=x.name||g[1]; const sm=document.createElement('small'); sm.textContent=(x.kind==='l'?'Закрыт ':'Вернули ')+fmtD(iso(new Date(x.closed))); nm.appendChild(sm);
+    b.onclick=()=>openAsset(x.kind,x.id); cb.appendChild(b); });
 
   // structure
   const st=$('aStruct'); st.innerHTML=''; $('aStructCard').hidden=!(A||L);
   [['a','Активы',A],['l','Долги',L]].forEach(([k,title,tot])=>{ if(!tot) return;
-    const by={}; assets.filter(x=>x.kind===k).forEach(x=>{const g=grpOf(k,x.g)[0];by[g]=(by[g]||0)+x.amount});
+    const by={}; LV.filter(x=>x.kind===k).forEach(x=>{const g=grpOf(k,x.g)[0];by[g]=(by[g]||0)+x.amount});
     const gs=Object.keys(by).sort((a,b)=>by[b]-by[a]);
     let bar='', leg=''; gs.forEach(id=>{const g=grpOf(k,id); bar+=`<i style="width:${by[id]/tot*100}%;background:${g[3]}" title="${esc(g[1])}"></i>`; leg+=`<span><i style="background:${g[3]}"></i>${esc(g[1])} ${pct(by[id]/tot)}</span>`});
     st.insertAdjacentHTML('beforeend',`<div><div class="stitle"><span>${title}</span><span class="num">${esc(money(tot))}</span></div><div class="stack" style="margin-top:6px">${bar}</div><div class="slegend">${leg}</div></div>`); });
@@ -1623,7 +1685,53 @@ function drawAssets(){
 function openAsset(kind,id){
   const x=id?assets.find(a=>a.id===id):null; aEditId=x?x.id:null; aKind=x?x.kind:kind; aGroup=x?x.g:groupsOf(aKind)[0][0]; aDelConf=false;
   $('aName').value=x?x.name||'':''; $('aAmt').value=x?String(x.amount).replace('.',','):''; $('aPay').value=x&&x.pay?String(x.pay).replace('.',','):'';
-  $('aErr').textContent=''; $('ascrim').hidden=false; drawAssetEd(); if(!x) setTimeout(()=>$('aAmt').focus(),60);
+  $('aErr').textContent=''; $('aRepErr').textContent=''; $('aRepAmt').value=''; $('aRepAcc').dataset.v='';
+  $('ascrim').hidden=false; drawAssetEd(); if(!x) setTimeout(()=>$('aAmt').focus(),60);
+}
+function drawRepay(){
+  const x=aEditId?assets.find(a=>a.id===aEditId):null; const box=$('aRepay');
+  const on=!!x&&x.kind===aKind&&canRepay(aKind,aGroup)&&(x.closed||x.amount>0||(x.hist||[]).length);
+  box.hidden=!on; $('aAmt').closest('.field').hidden=!!(x&&x.closed); $('aPayF').hidden=aKind!=='l'||!!(x&&x.closed);
+  if(!on) return;
+  const L=aKind==='l';
+  $('aRepT').textContent=x.closed?(L?'Долг закрыт':'Долг вам вернули'):(L?'Погасить долг':'Мне вернули');
+  $('aClosedTxt').hidden=!x.closed; $('aClosedTxt').textContent=x.closed?`${fmtD(iso(new Date(x.closed)))}. Всего ${L?'выплачено':'получено'} ${money(paidOf(x))}. Если закрыли по ошибке — отмените последнюю оплату.`:'';
+  $('aRepForm').hidden=!!x.closed||!(x.amount>0);
+  $('aRepAmtL').textContent=(L?'Сколько отдали, ':'Сколько вернули, ')+cur;
+  $('aRepAccL').textContent=L?'С какого счёта заплатили':'Куда поступили деньги';
+  $('aRepGo').textContent=L?'Погасить':'Получено';
+  const sel=$('aRepAcc'), keep=sel.dataset.v; sel.innerHTML='';
+  const accs=live().filter(a=>a.kind==='a'&&grpOf('a',a.g)[4]&&a.id!==x.id).sort((a,b)=>b.amount-a.amount);
+  accs.forEach(a=>{const o=document.createElement('option'); o.value=a.id; o.textContent=(a.name||grpOf('a',a.g)[1])+' — '+money(a.amount); sel.appendChild(o)});
+  const o=document.createElement('option'); o.value=''; o.textContent='Не менять счета'; sel.appendChild(o);
+  sel.value=keep&&[...sel.options].some(q=>q.value===keep)?keep:(accs[0]?accs[0].id:'');
+  const hb=$('aRepHist'); hb.innerHTML=''; const hs=x.hist||[];
+  if(hs.length){ const t=document.createElement('div'); t.innerHTML=`<span>${L?'Выплаты':'Поступления'}</span>`; hb.appendChild(t); }
+  hs.slice().reverse().slice(0,20).forEach((h,i)=>{ const a=h.acc?assets.find(q=>q.id===h.acc):null;
+    const d=document.createElement('div'); d.innerHTML=`<span>${esc(fmtD(h.t))}${a?' · '+esc(a.name||grpOf('a',a.g)[1]):''}</span><b class="num"></b>`;
+    d.querySelector('b').textContent=money(h.amt);
+    if(i===0){ const u=document.createElement('button'); u.className='ghost'; u.textContent='Отменить'; u.onclick=undoRepay; d.appendChild(u); }
+    hb.appendChild(d); });
+}
+function doRepay(){
+  const x=assets.find(a=>a.id===aEditId); if(!x) return; const L=x.kind==='l';
+  const v=$('aRepAmt').value.trim(); const amt=r2(parseNum(v));
+  if(!v||!(amt>0)){ $('aRepErr').textContent='Введите сумму'; return; }
+  if(amt>x.amount+.004){ $('aRepErr').textContent='Больше остатка: осталось '+money(x.amount); return; }
+  const acc=$('aRepAcc').value?assets.find(a=>a.id===$('aRepAcc').value):null;
+  if(acc&&L&&acc.amount<amt-.004){ $('aRepErr').textContent=`На «${acc.name||grpOf('a',acc.g)[1]}» только ${money(acc.amount)}. Выберите другой счёт или «Не менять счета».`; return; }
+  if(acc){ acc.amount=r2(acc.amount+(L?-amt:amt)); acc.upd=Date.now(); }
+  x.hist=(x.hist||[]).concat({t:today(),amt,acc:acc?acc.id:''}); x.amount=r2(x.amount-amt); x.upd=Date.now();
+  const done=x.amount<=.004; if(done){ x.amount=0; x.closed=Date.now(); }
+  saveAssets(); $('ascrim').hidden=true; drawAssets();
+  toast(done?(L?'Долг закрыт 🎉':'Долг вернули полностью 🎉'):(L?'Погашено ':'Получено ')+money(amt)+', осталось '+money(x.amount));
+}
+function undoRepay(){
+  const x=assets.find(a=>a.id===aEditId); if(!x||!(x.hist||[]).length) return;
+  const h=x.hist[x.hist.length-1]; x.hist=x.hist.slice(0,-1);
+  const acc=h.acc?assets.find(a=>a.id===h.acc):null; if(acc){ acc.amount=r2(acc.amount+(x.kind==='l'?h.amt:-h.amt)); acc.upd=Date.now(); }
+  x.amount=r2(x.amount+h.amt); x.closed=0; x.upd=Date.now();
+  saveAssets(); drawAssets(); $('aAmt').value=String(x.amount).replace('.',','); drawAssetEd(); toast('Оплата отменена');
 }
 function drawAssetEd(){
   $('akA').setAttribute('aria-pressed',aKind==='a'); $('akL').setAttribute('aria-pressed',aKind==='l');
@@ -1632,12 +1740,16 @@ function drawAssetEd(){
   const box=$('aGroups'); box.innerHTML='';
   groupsOf(aKind).forEach(g=>{const b=document.createElement('button'); b.style.setProperty('--c',g[3]); b.setAttribute('aria-pressed',g[0]===aGroup);
     b.innerHTML=`<span class="ic">${esc(g[2])}</span>`; b.append(g[1]); b.onclick=()=>{aGroup=g[0];drawAssetEd()}; box.appendChild(b)});
+  drawRepay();
   const d=$('aDel'); d.textContent=aEditId?(aDelConf?'Точно удалить?':'Удалить'):'Отмена'; d.style.background=aDelConf?'var(--exp)':''; d.style.color=aDelConf?'#fff':'';
 }
 function saveAsset(){
   const amount=parseNum($('aAmt').value); if(!(amount>=0)||$('aAmt').value.trim()===''){ $('aErr').textContent='Введите сумму'; return; }
   const pay=aKind==='l'?parseNum($('aPay').value):NaN;
+  const old=aEditId?assets.find(a=>a.id===aEditId):null;
   const item={id:aEditId||('a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),kind:aKind,g:aGroup,name:$('aName').value.trim(),amount:Math.round(amount*100)/100,pay:pay>0?Math.round(pay*100)/100:0,upd:Date.now()};
+  if(old&&old.kind===aKind&&old.hist&&old.hist.length) item.hist=old.hist;
+  if(old&&old.closed&&old.kind===aKind) item.closed=old.closed;
   assets=assets.filter(a=>a.id!==item.id).concat(item); saveAssets(); $('ascrim').hidden=true; drawAssets(); toast(aEditId?'Изменено':'Добавлено');
 }
 function delAsset(){
@@ -1779,6 +1891,9 @@ $('aAddA').onclick=()=>openAsset('a',null); $('aAddL').onclick=()=>openAsset('l'
 $('akA').onclick=()=>{if(aKind!=='a'){aKind='a';aGroup=A_GROUPS[0][0];drawAssetEd()}}; $('akL').onclick=()=>{if(aKind!=='l'){aKind='l';aGroup=L_GROUPS[0][0];drawAssetEd()}};
 $('aClose').onclick=()=>$('ascrim').hidden=true; $('ascrim').onclick=e=>{if(e.target===$('ascrim'))$('ascrim').hidden=true};
 $('aSave').onclick=saveAsset; $('aDel').onclick=delAsset;
+$('aRepGo').onclick=doRepay; $('aRepAmt').onkeydown=e=>{if(e.key==='Enter')doRepay()};
+$('aRepAll').onclick=()=>{const x=assets.find(a=>a.id===aEditId); if(x) $('aRepAmt').value=String(x.amount).replace('.',','); $('aRepErr').textContent=''};
+$('aRepAcc').onchange=e=>{e.target.dataset.v=e.target.value};
 ['aName','aAmt','aPay'].forEach(id=>$(id).onkeydown=e=>{if(e.key==='Enter')saveAsset()});
 $('pinBtn').onclick=()=>{ if(pinOn()){ drawBio(); $('pscrim').hidden=false; } else openPin('set'); };
 $('pBio').onclick=()=>{ bioOn()?bioDisable():bioEnable(); };
